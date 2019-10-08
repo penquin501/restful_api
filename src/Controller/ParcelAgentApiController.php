@@ -119,7 +119,7 @@ class ParcelAgentApiController extends AbstractController
     }
 
     /**
-     * @Route("/parcel/agent/register/agent/api", methods={"POST"})
+     * @Route("/parcel/agent/register/api", methods={"POST"})
      */
     public function registerMember(Request $request,
                                    EntityManagerInterface $em,
@@ -323,7 +323,7 @@ class ParcelAgentApiController extends AbstractController
     }
     ////////////////////////////////////////////////////Quick Link Part/////////////////////////////////////////////////
     /**
-     * @Route("/parcel/agent/quicklink/post", methods={"POST"})
+     * @Route("/parcel/agent/quicklink/api", methods={"POST"})
      */
     public function parcelAgentQuickLinkPost(Request $request,
                                              EntityManagerInterface $em,
@@ -558,7 +558,7 @@ class ParcelAgentApiController extends AbstractController
     }
 
     /**
-     * @Route("/parcel/agent/receipt/post", methods={"POST"})
+     * @Route("/parcel/agent/receipt/api", methods={"POST"})
      */
     public function receiptParcelAgent(Request $request,
                                        EntityManagerInterface $em
