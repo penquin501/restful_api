@@ -7,7 +7,7 @@ use Doctrine\ORM\Mapping as ORM;
 /**
  * MerchantConfig
  *
- * @ORM\Table(name="merchant_config", indexes={@ORM\Index(name="mer_type", columns={"mer_type"}), @ORM\Index(name="mer_ref", columns={"mer_ref"}), @ORM\Index(name="takeorderby", columns={"takeorderby"}), @ORM\Index(name="mer_level", columns={"mer_level"})})
+ * @ORM\Table(name="merchant_config", indexes={@ORM\Index(name="mer_type", columns={"mer_type"}), @ORM\Index(name="mer_ref", columns={"mer_ref"}), @ORM\Index(name="mer_level", columns={"mer_level"}), @ORM\Index(name="takeorderby", columns={"takeorderby"})})
  * @ORM\Entity
  */
 class MerchantConfig
@@ -27,20 +27,6 @@ class MerchantConfig
      * @ORM\Column(name="mer_type", type="string", length=0, nullable=false, options={"default"="holding"})
      */
     private $merType = 'holding';
-
-    /**
-     * @var string|null
-     *
-     * @ORM\Column(name="mer_ownership", type="string", length=0, nullable=true, options={"default"="OTHERS","comment"="parcel only"})
-     */
-    private $merOwnership = 'OTHERS';
-
-    /**
-     * @var string
-     *
-     * @ORM\Column(name="mer_ref_usage", type="string", length=0, nullable=false, options={"default"="N"})
-     */
-    private $merRefUsage = 'N';
 
     /**
      * @var string|null
@@ -377,30 +363,6 @@ class MerchantConfig
     public function setMerType(string $merType): self
     {
         $this->merType = $merType;
-
-        return $this;
-    }
-
-    public function getMerOwnership(): ?string
-    {
-        return $this->merOwnership;
-    }
-
-    public function setMerOwnership(?string $merOwnership): self
-    {
-        $this->merOwnership = $merOwnership;
-
-        return $this;
-    }
-
-    public function getMerRefUsage(): ?string
-    {
-        return $this->merRefUsage;
-    }
-
-    public function setMerRefUsage(string $merRefUsage): self
-    {
-        $this->merRefUsage = $merRefUsage;
 
         return $this;
     }

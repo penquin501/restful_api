@@ -71,8 +71,7 @@ class ParcelAgentApiController extends AbstractController
         if ($senderInfo == null) {
             $output = array("status" => "ERROR_NO_MEMBER");
         } else {
-            $merchantName = $repMerchantConfig->findBy(array('takeorderby' => $senderInfo[0]->getMerid()));
-
+            $merchantName = $repMerchantConfig->findMerchantName($senderInfo[0]->getMerid());
             if ($merchantName == null) {
                 $output = array("status" => "ERROR_NO_MERCHANT");
             } else {
@@ -81,7 +80,7 @@ class ParcelAgentApiController extends AbstractController
                     "senderName" => $senderInfo[0]->getFirstname() . ' ' . $senderInfo[0]->getLastname(),
                     "senderMerId" => $senderInfo[0]->getMerid(),
                     "senderCodStatus" => $senderInfo[0]->getBankInfoProven(),
-                    "senderShopOrigin" => $merchantName[0]->getMerchantname()
+                    "senderShopOrigin" => $merchantName[0]['merchantName']
                 );
             }
         }

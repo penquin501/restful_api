@@ -19,6 +19,17 @@ class MerchantConfigRepository extends ServiceEntityRepository
         parent::__construct($registry, MerchantConfig::class);
     }
 
+    public function findMerchantName($merId)
+    {
+        return $this->createQueryBuilder('m')
+            ->select('m.merchantname as merchantName')
+            ->Where('m.takeorderby = :merId')
+            ->setParameter('merId', $merId)
+            ->getQuery()
+            ->getResult()
+            ;
+    }
+
     // /**
     //  * @return MerchantConfig[] Returns an array of Test99 objects
     //  */
