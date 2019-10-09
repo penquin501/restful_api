@@ -566,9 +566,9 @@ class ParcelAgentApiController extends AbstractController
         $data = json_decode($request->getContent(), true);
         $sumFee=0;
 
-        $query="SELECT mb.parcel_ref as tracking,mb.orderdate as orderDate,mDetail.productname as productName,mDetail.delivery_fee as deliveryFee ".
-            "FROM merchant_billing_b mb ".
-            "JOIN merchant_billing_detail_b mDetail ".
+        $query="SELECT mb.parcel_ref as tracking,mb.orderdate as orderDate,mb.ordername as orderName,mDetail.productname as productName,mDetail.delivery_fee as deliveryFee ".
+            "FROM merchant_billing mb ".
+            "JOIN merchant_billing_detail mDetail ".
             "ON mb.takeorderby=mDetail.takeorderby AND mb.payment_invoice=mDetail.payment_invoice ".
             "WHERE mb.parcel_bill_no='".$data['billNo']."'";
         $merchantInfo = $em->getConnection()->query($query);
