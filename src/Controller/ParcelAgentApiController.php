@@ -36,7 +36,8 @@ class ParcelAgentApiController extends AbstractController
      */
     public function checkGlobalAuthen(Request $request,
                                       GlobalAuthenRepository $repGlobalAuthen
-    ) {
+    )
+    {
         date_default_timezone_set("Asia/Bangkok");
         $data = json_decode($request->getContent(), true);
 
@@ -62,7 +63,8 @@ class ParcelAgentApiController extends AbstractController
     public function checkSenderMember(Request $request,
                                       ParcelMemberRepository $repParcelMember,
                                       MerchantConfigRepository $repMerchantConfig
-    ) {
+    )
+    {
         date_default_timezone_set("Asia/Bangkok");
         $data = json_decode($request->getContent(), true);
 
@@ -123,20 +125,21 @@ class ParcelAgentApiController extends AbstractController
     public function registerMember(Request $request,
                                    EntityManagerInterface $em,
                                    ParcelMemberRepository $repParcelMember
-    ) {
+    )
+    {
         date_default_timezone_set("Asia/Bangkok");
         $data = json_decode($request->getContent(), true);
-
         $sumMerId = 0;
         $sumCountMember = 0;
         $sumDateRecord = 0;
-        $countOnParcelMember = $repParcelMember->count(array('merid' => $data['agentMerId']));
-
-        if ($countOnParcelMember == 0) {
+        $countOnParcelMember = $repParcelMember->count(array('merid' => $data['merId']));
+        if ($data['merId'] == '' || $data['citizenId'] == '' || $data['firstName'] == '' || $data['lastName'] == '' || $data['phone'] == '' || $data['imgCitizenIdUrl'] == '' || $data['imgCitizenIdUrl'] == 'noImg' || $data['imgCitizenIdUrl'] == 'noimg' || $data['imgCitizenIdUrl'] == 'noImage') {
+            $output = array('status' => "ERROR_DATA_NOT_COMPLETE");
+        } else if ($countOnParcelMember == 0) {
             $output = array('status' => "ERROR_NO_MER_ID");
         } else {
             ///////////////////////////////////////All Info for Member Id///////////////////////////////////////////////
-            $splMerId = str_split($data['agentMerId']);
+            $splMerId = str_split($data['merId']);
             foreach ($splMerId as $itemMerId) {
                 $sumMerId += intval($itemMerId);
             }
@@ -154,7 +157,7 @@ class ParcelAgentApiController extends AbstractController
             $strSumMember = strval($sumMerId + $sumCountMember + $sumDateRecord);
             $splSumMember = str_split($strSumMember);
 
-            $memberId = $data['agentMerId'] . ($countOnParcelMember + 1) . $dateInput . $splSumMember[count($splSumMember) - 1];
+            $memberId = $data['merId'] . ($countOnParcelMember + 1) . $dateInput . $splSumMember[count($splSumMember) - 1];
             ////////////////////////////////////////////////////////////////////////////////////////////////////////////
             $pattern = '/^0\d{9}$/';
             $phoneNO = trim($data['phone']);
@@ -174,22 +177,43 @@ class ParcelAgentApiController extends AbstractController
                 }
             }
             ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-            $logImg=new LogImgParcelAgent();
+            if ($data['address'] == '') {
+                $address = null;
+            } else {
+                $address = $data['address'];
+            }
+            if ($data['imgBookBankUrl'] == '') {
+                $imgBankUrl = null;
+                $rawDataBank = null;
+                $recordDateBank = null;
+            } else {
+                $imgBankUrl = $data['imgBookBankUrl'];
+                $rawDataBank = $request->getContent();
+                $recordDateBank = new \DateTime("now", new \DateTimeZone('Asia/Bangkok'));
+            }
+            $logImg = new LogImgParcelAgent();
             $logImg->setMemberId($memberId);
-            $logImg->setImgUrlCitizen($data['imgUrl']);
+            $logImg->setImgUrlCitizen($data['imgCitizenIdUrl']);
+            $logImg->setImgUrlBank($imgBankUrl);
             $logImg->setRawDataRegister($request->getContent());
-            $logImg->setRecordDateRegister(new \DateTime("now",new \DateTimeZone('Asia/Bangkok')));
+            $logImg->setRawDataBank($rawDataBank);
+            $logImg->setRecordDateRegister(new \DateTime("now", new \DateTimeZone('Asia/Bangkok')));
+            $logImg->setRecordDateBank($recordDateBank);
             ////////////////////////////////////////////////////////////////////////////////////////////////////////////
             $parcelMember = new ParcelMember();
-            $parcelMember->setMerid($data['agentMerId']);
+            $parcelMember->setMerid($data['merId']);
             $parcelMember->setMemberId($memberId);
             $parcelMember->setCitizenid($data['citizenId']);
             $parcelMember->setFirstname($data['firstName']);
             $parcelMember->setLastname($data['lastName']);
-            $parcelMember->setAliasname($data['firstName'] . ' ' . $data['lastName']);
+            $parcelMember->setAliasname($data['aliasName']);
+            $parcelMember->setRefAddress($address);
             $parcelMember->setPhoneregis($phoneNO);
             $parcelMember->setUsername($phoneNO);
             $parcelMember->setPasscode($passCode);
+            $parcelMember->setBankacc($data['bankAcc']);
+            $parcelMember->setBankIssue($data['bankIssue']);
+            $parcelMember->setBankAccName($data['bankAccName']);
             $parcelMember->setBankInfoProven('pass');
             $parcelMember->setMemberTransferFee(20);
             $parcelMember->setPeakValue('');
@@ -210,16 +234,17 @@ class ParcelAgentApiController extends AbstractController
     public function genMemberId(Request $request,
                                 EntityManagerInterface $em,
                                 ParcelMemberRepository $repParcelMember
-    ) {
+    )
+    {
         date_default_timezone_set("Asia/Bangkok");
         $data = json_decode($request->getContent(), true);
 //        $countOnParcelMember = $repParcelMember->count(array('merid' => $data['branch_id']));
-        $countOnParcelMember=$data['maxMember'];
+        $countOnParcelMember = $data['maxMember'];
         $sumMerId = 0;
         $sumCountMember = 0;
         $sumDateRecord = 0;
 
-        if ($countOnParcelMember == 0 || $countOnParcelMember=='') {
+        if ($countOnParcelMember == 0 || $countOnParcelMember == '') {
             $output = array('status' => "ERROR_NO_MER_ID");
         } else {
             ///////////////////////////////////////All Info for Member Id///////////////////////////////////////////////
@@ -242,8 +267,8 @@ class ParcelAgentApiController extends AbstractController
             $splSumMember = str_split($strSumMember);
 
             $memberId = $data['branch_id'] . ($countOnParcelMember + 1) . $dateInput . $splSumMember[count($splSumMember) - 1];
-            $output = array('status' => "Success",
-                'memberId'=>$memberId);
+            $output = array('status' => "SUCCESS",
+                'memberId' => $memberId);
         }
         return $this->json($output);
     }
@@ -256,38 +281,41 @@ class ParcelAgentApiController extends AbstractController
                                       ParcelMemberRepository $repParcelMember,
                                       LogImgParcelAgentRepository $repImgParcelAgent
 
-    ) {
+    )
+    {
         date_default_timezone_set("Asia/Bangkok");
         $data = json_decode($request->getContent(), true);
-        $parcelMemberInfo=$repParcelMember->findOneBy(array('phoneregis'=>$data['memberId']));
+        $parcelMemberInfo = $repParcelMember->findOneBy(array('phoneregis' => $data['phoneRegis']));
 
-        if($parcelMemberInfo==null) {
-            $output=['status'=>'Error_No_Member_Info'];
+        if ( $data['phoneRegis'] == '' || $data['address'] == '' || $data['bankAccName'] == '' || $data['bankIssue'] == '' || $data['bankAcc'] == '' || $data['imgBookBankUrl'] == '') {
+            $output = array('status' => "ERROR_DATA_NOT_COMPLETE");
+        } elseif ($parcelMemberInfo == null) {
+            $output = ['status' => 'Error_No_Member_Info'];
         } else {
-            $parcelMemberInfo->setRefAddress($data['memberAddress']);
+            $parcelMemberInfo->setRefAddress($data['address']);
             $parcelMemberInfo->setBankacc($data['bankAcc']);
             $parcelMemberInfo->setBankAccName($data['bankAccName']);
             $parcelMemberInfo->setBankIssue($data['bankIssue']);
 
             $imgBankInfo = $repImgParcelAgent->findOneBy(array('memberId' => $parcelMemberInfo->getMemberId()));
 
-            if($imgBankInfo==null) {
-                $logImg=new LogImgParcelAgent();
+            if ($imgBankInfo == null) {
+                $logImg = new LogImgParcelAgent();
                 $logImg->setMemberId($parcelMemberInfo->getMemberId());
 //                    $logImg->setImgUrlCitizen($data['imgUrl']);
-                $logImg->setImgUrlBank($data['bankImg']);
+                $logImg->setImgUrlBank($data['imgBookBankUrl']);
 //                    $logImg->setRawDataRegister($request->getContent());
                 $logImg->setRawDataBank($request->getContent());
-                $logImg->setRecordDateBank(new \DateTime("now",new \DateTimeZone('Asia/Bangkok')));
+                $logImg->setRecordDateBank(new \DateTime("now", new \DateTimeZone('Asia/Bangkok')));
                 $em->persist($logImg);
             } else {
-                $imgBankInfo->setImgUrlBank($data['bankImg']);
+                $imgBankInfo->setImgUrlBank($data['imgBookBankUrl']);
                 $imgBankInfo->setRawDataBank($request->getContent());
                 $imgBankInfo->setRecordDateBank(new \DateTime("now", new \DateTimeZone('Asia/Bangkok')));
             }
 
             $em->flush();
-            $output = ['status' => 'Success'];
+            $output = ['status' => 'SUCCESS'];
         }
         return $this->json($output);
     }
@@ -297,16 +325,17 @@ class ParcelAgentApiController extends AbstractController
      */
     public function selectZipcodeThailand(Request $request,
                                           PostinfoZipcodesRepository $repZipcode
-    ) {
-        $zipcode=$request->query->get('zipcode');
+    )
+    {
+        $zipcode = $request->query->get('zipcode');
 
         $entityManager = $this->getDoctrine()->getManager();
-        $sql = "SELECT z.zipcode,d.DISTRICT_ID,d.DISTRICT_CODE,d.DISTRICT_NAME,d.AMPHUR_ID,a.AMPHUR_NAME,d.PROVINCE_ID,p.PROVINCE_NAME ".
-            "FROM postinfo_zipcodes z ".
-            "JOIN postinfo_district d ON z.district_code=d.DISTRICT_CODE ".
-            "JOIN postinfo_amphur a ON d.AMPHUR_ID=a.AMPHUR_ID ".
-            "JOIN postinfo_province p ON d.PROVINCE_ID=p.PROVINCE_ID ".
-            "WHERE z.zipcode='".$zipcode."'";
+        $sql = "SELECT z.zipcode,d.DISTRICT_ID,d.DISTRICT_CODE,d.DISTRICT_NAME,d.AMPHUR_ID,a.AMPHUR_NAME,d.PROVINCE_ID,p.PROVINCE_NAME " .
+            "FROM postinfo_zipcodes z " .
+            "JOIN postinfo_district d ON z.district_code=d.DISTRICT_CODE " .
+            "JOIN postinfo_amphur a ON d.AMPHUR_ID=a.AMPHUR_ID " .
+            "JOIN postinfo_province p ON d.PROVINCE_ID=p.PROVINCE_ID " .
+            "WHERE z.zipcode='" . $zipcode . "'";
         $thailandInfo = $entityManager->getConnection()->query($sql);
 
         return $this->json($thailandInfo);
@@ -317,10 +346,11 @@ class ParcelAgentApiController extends AbstractController
      */
     public function selectBankName(GlobalBankIssueRepository $repBankIssue)
     {
-        $bankInfo=$repBankIssue->findBy(array('status'=>'active'));
+        $bankInfo = $repBankIssue->findBy(array('status' => 'active'));
         return $this->json($bankInfo);
     }
     ////////////////////////////////////////////////////Quick Link Part/////////////////////////////////////////////////
+
     /**
      * @Route("/parcel/agent/quicklink/api", methods={"POST"})
      */
@@ -333,17 +363,18 @@ class ParcelAgentApiController extends AbstractController
                                              ParcelMemberRepository $repParcelMember,
                                              GlobalProductImageRepository $repGlobalProductImg,
                                              GlobalWarehouseRepository $repGlobalWarehouse
-    ) {
+    )
+    {
         date_default_timezone_set("Asia/Bangkok");
-        $data=json_decode($request->getContent(),true);
-        $dateToday=date("Y-m-d H:i:s",strtotime("now"));
-        $dateExpire=date( "Y-m-d H:i:s", strtotime("now" ."+3 Days" ) );
+        $data = json_decode($request->getContent(), true);
+        $dateToday = date("Y-m-d H:i:s", strtotime("now"));
+        $dateExpire = date("Y-m-d H:i:s", strtotime("now" . "+3 Days"));
 
         if ($data['agentMerId'] != $data['senderMerId']) {
             $output = array('status' => 'ERROR_MER_ID_NOT_MATCH');
         } else {
             ///////////////////////////////////////////GEN PARCEL BILL NO///////////////////////////////////////////////
-            $parcelBillNo = $data['agentMerId'].'-'.$data['agentUserId'].'-'.date("ymdHis").'-'.rand(111, 999);
+            $parcelBillNo = $data['agentMerId'] . '-' . $data['agentUserId'] . '-' . date("ymdHis") . '-' . rand(111, 999);
             ////////////////////////////////////////////////////////////////////////////////////////////////////////////
             foreach ($data['trackingList'] as $item) {
                 $patternTracking11 = '/^[T|t][D|d][Z|z]+[0-9]{8}?$/i';
@@ -385,15 +416,15 @@ class ParcelAgentApiController extends AbstractController
                         $productIdSize = [17974, 171316, 17975, 17976, 17977, 17978, 17979, 17980, 17981];
                     }
 
-                    $lowerParcelSize=strtolower($item['parcelSize']);
-                    if($lowerParcelSize=='miniplus') {
-                        $parcelSize='mini+';
-                    } elseif ($lowerParcelSize=='splus'){
-                        $parcelSize='s+';
-                    } elseif($lowerParcelSize=='mplus'){
-                        $parcelSize='m+';
+                    $lowerParcelSize = strtolower($item['parcelSize']);
+                    if ($lowerParcelSize == 'miniplus') {
+                        $parcelSize = 'mini+';
+                    } elseif ($lowerParcelSize == 'splus') {
+                        $parcelSize = 's+';
+                    } elseif ($lowerParcelSize == 'mplus') {
+                        $parcelSize = 'm+';
                     } else {
-                        $parcelSize=$lowerParcelSize;
+                        $parcelSize = $lowerParcelSize;
                     }
 
                     $parcelPriceSize = $repMerchantProduct->findParcelSizePrice($data['agentMerId'], $productIdSize, $parcelSize);
@@ -505,7 +536,7 @@ class ParcelAgentApiController extends AbstractController
                         $merchantBillingDetail->setDeliveryFee($globalProduct[0]->getDeliveryFee());
                         $merchantBillingDetail->setDeliveryFeeInPrice($globalProduct[0]->getDeliveryFeeInPrice());
                         $merchantBillingDetail->setDeliveryFeeRatio($globalProduct[0]->getDeliveryFeeRatio());
-                        if($globalProductImg==null) {
+                        if ($globalProductImg == null) {
                             $merchantBillingDetail->setImgproductonbill(null);
                         } else {
                             $merchantBillingDetail->setImgproductonbill($globalProductImg[0]->getThumbimg());
@@ -561,27 +592,28 @@ class ParcelAgentApiController extends AbstractController
      */
     public function receiptParcelAgent(Request $request,
                                        EntityManagerInterface $em
-    ){
+    )
+    {
         $data = json_decode($request->getContent(), true);
-        $sumFee=0;
+        $sumFee = 0;
 
-        $query="SELECT mb.parcel_ref as tracking,mb.orderdate as orderDate,mb.ordername as orderName,mDetail.productname as productName,mDetail.delivery_fee as deliveryFee ".
-            "FROM merchant_billing mb ".
-            "JOIN merchant_billing_detail mDetail ".
-            "ON mb.takeorderby=mDetail.takeorderby AND mb.payment_invoice=mDetail.payment_invoice ".
-            "WHERE mb.parcel_bill_no='".$data['billNo']."'";
+        $query = "SELECT mb.parcel_ref as tracking,mb.orderdate as orderDate,mb.ordername as orderName,mDetail.productname as productName,mDetail.delivery_fee as deliveryFee " .
+            "FROM merchant_billing mb " .
+            "JOIN merchant_billing_detail mDetail " .
+            "ON mb.takeorderby=mDetail.takeorderby AND mb.payment_invoice=mDetail.payment_invoice " .
+            "WHERE mb.parcel_bill_no='" . $data['billNo'] . "'";
         $merchantInfo = $em->getConnection()->query($query);
         $merchantDetail = json_decode($this->json($merchantInfo)->getContent(), true);
 
-        if($merchantDetail == null){
+        if ($merchantDetail == null) {
             $output = array("status" => "ERROR_NOT_FOUND_BILLING");
         } else {
-            foreach ($merchantDetail as $item){
-                $sumFee+=$item['deliveryFee'];
+            foreach ($merchantDetail as $item) {
+                $sumFee += $item['deliveryFee'];
             }
             $output = array("status" => "SUCCESS",
-                "receiptDetail"=>$merchantDetail,
-                "sumReceipt"=>$sumFee
+                "receiptDetail" => $merchantDetail,
+                "sumReceipt" => $sumFee
             );
         }
         return $this->json($output);
@@ -592,15 +624,16 @@ class ParcelAgentApiController extends AbstractController
      */
     public function listReceiptAgent(Request $request,
                                      MerchantBillingRepository $repMerchantBilling
-    ){
+    )
+    {
         date_default_timezone_set("Asia/Bangkok");
         $data = json_decode($request->getContent(), true);
-        $listBillNo=$repMerchantBilling->findBillNo($data['startDate'],$data['endDate']);
-        if($listBillNo == null){
+        $listBillNo = $repMerchantBilling->findBillNo($data['startDate'], $data['endDate']);
+        if ($listBillNo == null) {
             $output = ["status" => "ERROR_NOT_FOUND"];
         } else {
             $output = ["status" => "SUCCESS",
-                "listBillNo"=>$listBillNo
+                "listBillNo" => $listBillNo
             ];
         }
         return $this->json($output);
@@ -612,7 +645,8 @@ class ParcelAgentApiController extends AbstractController
     public function listProductAgentPost(Request $request,
                                          MerchantProductRepository $repMerchantProduct,
                                          PostinfoZipcodesRepository $repZipcode
-    ){
+    )
+    {
         date_default_timezone_set("Asia/Bangkok");
         $data = json_decode($request->getContent(), true);
         $districtCode = $repZipcode->findBy(array('zipcode' => $data['zipcode']));
@@ -645,27 +679,29 @@ class ParcelAgentApiController extends AbstractController
         }
 
         $parcelPriceSize = $repMerchantProduct->findParcelSizePrice($data['agentMerId'], $productIdSize, $data['parcelSize']);
-        if($parcelPriceSize==null){
-            $output=["status" => "ERROR_NOT_FOUND"];
+        if ($parcelPriceSize == null) {
+            $output = ["status" => "ERROR_NOT_FOUND"];
         } else {
-            $output=["status" => "SUCCESS",
-                "productPrice"=>$parcelPriceSize[0]['productprice']];
+            $output = ["status" => "SUCCESS",
+                "productPrice" => $parcelPriceSize[0]['productprice']];
         }
         return $this->json($output);
     }
 
     ////////////////////////////////////////////////////Shop Drop Part//////////////////////////////////////////////////
+
     /**
      * @Route("/parcel/agent/shop/parcel/drop/api", methods={"POST"})
      */
     public function shopParcelDrop(Request $request,
                                    EntityManagerInterface $em,
                                    CheckParcelDropRepository $repCheckParcelDrop
-    ){
+    )
+    {
         date_default_timezone_set("Asia/Bangkok");
         $data = json_decode($request->getContent(), true);
         $date = new \DateTime($data['dateDrop']);
-        $trackingWaitingShopScan = $repCheckParcelDrop->findRemainTracking($data['agentUserId'],$data['agentMerId'], $date);
+        $trackingWaitingShopScan = $repCheckParcelDrop->findRemainTracking($data['agentUserId'], $data['agentMerId'], $date);
         if (count($data['trackingList']) == 0) {
             $output = array("status" => "ERROR_NOT_TRACKING_LIST");
         } else {
@@ -674,8 +710,8 @@ class ParcelAgentApiController extends AbstractController
                     'merId' => $data['agentMerId']
                 ));
                 if ($checkParcelTracking == null) {
-                    $trackingNotfound[] = [ "tracking" => $tracking['tracking']];
-                    $output = array("status" => "ERROR_NO_TRACKING","trackingList"=> $trackingNotfound);
+                    $trackingNotfound[] = ["tracking" => $tracking['tracking']];
+                    $output = array("status" => "ERROR_NO_TRACKING", "trackingList" => $trackingNotfound);
                 } else {
                     $checkParcelTracking->setDropMerId($data['shopMerId']);
                     $checkParcelTracking->setStatus(1);
