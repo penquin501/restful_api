@@ -133,7 +133,16 @@ class ParcelAgentApiController extends AbstractController
         $sumCountMember = 0;
         $sumDateRecord = 0;
         $countOnParcelMember = $repParcelMember->count(array('merid' => $data['merId']));
-        if ($data['merId'] == '' || $data['citizenId'] == '' || $data['firstName'] == '' || $data['lastName'] == '' || $data['phone'] == '' || $data['imgCitizenIdUrl'] == '' || $data['imgCitizenIdUrl'] == 'noImg' || $data['imgCitizenIdUrl'] == 'noimg' || $data['imgCitizenIdUrl'] == 'noImage') {
+        if ($data['merId'] == '' ||
+            $data['citizenId'] == '' ||
+            $data['firstName'] == '' ||
+            $data['lastName'] == '' ||
+            $data['phone'] == '' ||
+            $data['imgCitizenIdUrl'] == '' ||
+            $data['imgCitizenIdUrl'] == 'noImg' ||
+            $data['imgCitizenIdUrl'] == 'noimg' ||
+            $data['imgCitizenIdUrl'] == 'noImage'
+        ) {
             $output = array('status' => "ERROR_DATA_NOT_COMPLETE");
         } else if ($countOnParcelMember == 0) {
             $output = array('status' => "ERROR_NO_MER_ID");
@@ -514,6 +523,7 @@ class ParcelAgentApiController extends AbstractController
                         $merchantBilling->setPeakUrlCodReceiptWebview(null);
                         $merchantBilling->setPeakError(null);
                         $merchantBilling->setPeakErrorTimestamp(null);
+                        $merchantBilling->setRecordFrom("Parcel Agent Mobile App");
 
                         ///////////////////////////////////INSERT MERCHANT BILLING DETAIL DATA//////////////////////////////
                         $globalProduct = $repGlobalProduct->findBy(array('productid' => $parcelPriceSize[0]['pId']));
@@ -560,6 +570,7 @@ class ParcelAgentApiController extends AbstractController
                         $merchantBillingDelivery->setMailcode($item['tracking']);
                         $merchantBillingDelivery->setTransporterId(1);
                         $merchantBillingDelivery->setProductParcelSize(0);
+                        $merchantBillingDelivery->setPrepareMailcode($item['tracking']);
                         ///////////////////////////////////INSERT FLAG TRACKING DATA////////////////////////////////////////
                         $checkParcelDrop = new CheckParcelDrop();
                         $checkParcelDrop->setMerId($data['agentMerId']);
