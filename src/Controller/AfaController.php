@@ -3,12 +3,12 @@
 namespace App\Controller;
 
 use Doctrine\ORM\EntityManagerInterface;
-use phpDocumentor\Reflection\Types\Boolean;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 
 use App\Entity\GlobalAuthen;
+use App\Entity\LogImgParcelAgent;
 
 use App\Repository\GlobalAuthenRepository;
 use App\Repository\LogImgParcelAgentRepository;
@@ -55,6 +55,13 @@ class AfaController extends AbstractController
                     if ($checkPhone > 0) {
                         $output = ['status' => 'ERROR_DUPLICATED_PHONE'];
                     } else {
+                        $newImgCitizenId= new LogImgParcelAgent();
+                        $newImgCitizenId->setMemberId($data['idCard']);
+                        $newImgCitizenId->setImgUrlCitizen($data['imgUpload']);
+                        $newImgCitizenId->setRawDataRegister($request->getContent());
+                        $newImgCitizenId->setRecordDateRegister(new \DateTime("now", new \DateTimeZone('Asia/Bangkok')));
+                        $newImgCitizenId->setSource('afa_register');
+
                         $newUser = new GlobalAuthen();
                         $newUser->setAfaUser('no');
                         $newUser->setAfaLevel('agent');
@@ -70,6 +77,8 @@ class AfaController extends AbstractController
                         $newUser->setPermission(null);
                         $newUser->setLang('th');
                         $newUser->setStatus('pending');
+
+                        $em->persist($newImgCitizenId);
                         $em->persist($newUser);
                         $em->flush();
                         $output = ['status' => 'SUCCESS'];

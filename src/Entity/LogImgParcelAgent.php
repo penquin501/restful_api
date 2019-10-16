@@ -70,6 +70,13 @@ class LogImgParcelAgent
      */
     private $recordDateBank;
 
+    /**
+     * @var string|null
+     *
+     * @ORM\Column(name="source", type="string", length=20, nullable=true)
+     */
+    private $source;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -155,6 +162,18 @@ class LogImgParcelAgent
     public function setRecordDateBank(?\DateTimeInterface $recordDateBank): self
     {
         $this->recordDateBank = $recordDateBank;
+
+        return $this;
+    }
+
+    public function getSource(): ?string
+    {
+        return $this->source;
+    }
+
+    public function setSource(?string $source): self
+    {
+        $this->source = $source;
 
         return $this;
     }

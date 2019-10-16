@@ -208,6 +208,7 @@ class ParcelAgentApiController extends AbstractController
             $logImg->setRawDataBank($rawDataBank);
             $logImg->setRecordDateRegister(new \DateTime("now", new \DateTimeZone('Asia/Bangkok')));
             $logImg->setRecordDateBank($recordDateBank);
+            $logImg->setSource('agent_register');
             ////////////////////////////////////////////////////////////////////////////////////////////////////////////
             $parcelMember = new ParcelMember();
             $parcelMember->setMerid($data['merId']);
