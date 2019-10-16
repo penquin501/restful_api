@@ -54,6 +54,8 @@ class AfaController extends AbstractController
                     $checkPhone = $repGlobelAuthen->count(array('phoneno' => $phoneNO));
                     if ($checkPhone > 0) {
                         $output = ['status' => 'ERROR_DUPLICATED_PHONE'];
+                    } elseif($data['merId']!= 188) {
+                        $output = ['status' => 'ERROR_WRONG_MER_ID'];
                     } else {
                         $newImgCitizenId= new LogImgParcelAgent();
                         $newImgCitizenId->setMemberId($data['idCard']);
@@ -67,7 +69,7 @@ class AfaController extends AbstractController
                         $newUser->setAfaLevel('agent');
                         $newUser->setAfaRank('');
                         $newUser->setRefUserId(0);
-                        $newUser->setMerid(1236);
+                        $newUser->setMerid($data['merId']);
                         $newUser->setUname($data['firstName'] . "." . $data['lastName'][0]);
                         $newUser->setPwrd('');
                         $newUser->setFname($data['firstName'] . " " . $data['lastName']);
