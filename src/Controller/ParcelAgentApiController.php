@@ -144,8 +144,6 @@ class ParcelAgentApiController extends AbstractController
             $data['imgCitizenIdUrl'] == 'noImage'
         ) {
             $output = array('status' => "ERROR_DATA_NOT_COMPLETE");
-        } else if ($countOnParcelMember == 0) {
-            $output = array('status' => "ERROR_NO_MER_ID");
         } else {
             ///////////////////////////////////////All Info for Member Id///////////////////////////////////////////////
             $splMerId = str_split($data['merId']);
