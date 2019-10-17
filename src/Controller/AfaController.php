@@ -29,10 +29,13 @@ class AfaController extends AbstractController
         if ($data['phone'] == '' || $data['firstName'] == '' || $data['lastName'] == '' || $data['idCard'] == '') {
             $output = ['status' => 'ERROR_DATA_NOT_COMPLETE'];
         } else {
-            $patternId = '/^([1-9]{1})\d{12}$/';
-            $idCard = trim($data['idCard']);
-            $arrIdCard = str_split($idCard);
-            if((count($arrIdCard) < 0  && count($arrIdCard)>13) || !preg_match($patternId,$idCard)) {
+            $resultIdCardCheck=$this->validatePID($data['idCard']);
+//            $patternId = '/^([1-9]{1})\d{12}$/';
+//            $idCard = trim($data['idCard']);
+//            $arrIdCard = str_split($idCard);
+//            if((count($arrIdCard) < 0  && count($arrIdCard)>13) || !preg_match($patternId,$idCard)) {
+//                $output = ['status' => 'ERROR_ID_CARD_WRONG'];
+            if($resultIdCardCheck==false){
                 $output = ['status' => 'ERROR_ID_CARD_WRONG'];
             } elseif ($data['phone'][0] . $data['phone'][1] != '06' && $data['phone'][0] . $data['phone'][1] != '08' && $data['phone'][0] . $data['phone'][1] != '09') {
                 $output = ['status' => 'ERROR_PHONE_WRONG_FORMAT'];
@@ -89,5 +92,32 @@ class AfaController extends AbstractController
             }
         }
         return $this->json($output);
+    }
+
+    public function validatePID($pid){
+        if(preg_match("/^(\d)(\d)(\d)(\d)(\d)(\d)(\d)(\d)(\d)(\d)(\d)(\d)(\d)$/", $pid, $matches)){ //ใช้ preg_match
+            if(strlen($pid) != 13){
+                $returncheck = false;
+            }else{
+                $rev = strrev($pid); // reverse string ขั้นที่ 0 เตรียมตัว
+                $total = 0;
+                for($i=1;$i<13;$i++){ // ขั้นตอนที่ 1 - เอาเลข 12 หลักมา เขียนแยกหลักกันก่อน
+                    $mul = $i +1;
+                    $count = $rev[$i]*$mul; // ขั้นตอนที่ 2 - เอาเลข 12 หลักนั้นมา คูณเข้ากับเลขประจำหลักของมัน
+                    $total = $total + $count; // ขั้นตอนที่ 3 - เอาผลคูณทั้ง 12 ตัวมา บวกกันทั้งหมด
+                }
+                $mod = $total % 11; //ขั้นตอนที่ 4 - เอาเลขที่ได้จากขั้นตอนที่ 3 มา mod 11 (หารเอาเศษ)
+                $sub = 11 - $mod; //ขั้นตอนที่ 5 - เอา 11 ตั้ง ลบออกด้วย เลขที่ได้จากขั้นตอนที่ 4
+                $check_digit = $sub % 10; //ถ้าเกิด ลบแล้วได้ออกมาเป็นเลข 2 หลัก ให้เอาเลขในหลักหน่วยมาเป็น Check Digit
+                if($rev[0] == $check_digit){  // ตรวจสอบ ค่าที่ได้ กับ เลขตัวสุดท้ายของ บัตรประจำตัวประชาชน
+                    $returncheck = true; /// ถ้า ตรงกัน แสดงว่าถูก
+                }else{
+                    $returncheck = false; // ไม่ตรงกันแสดงว่าผิด
+                }
+            }
+        }else{
+            $returncheck = false;
+        }
+        return $returncheck;
     }
 }
