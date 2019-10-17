@@ -365,6 +365,7 @@ class ParcelAgentApiController extends AbstractController
      */
     public function selectParcelMember(Request $request, ParcelMemberRepository $repParcelMember)
     {
+        header("Access-Control-Allow-Origin: *");
         $data = json_decode($request->getContent(), true);
 
         $entityManager = $this->getDoctrine()->getManager();
