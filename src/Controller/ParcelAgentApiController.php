@@ -775,6 +775,7 @@ class ParcelAgentApiController extends AbstractController
     )
     {
         date_default_timezone_set("Asia/Bangkok");
+        $dateToday = date("Y-m-d", strtotime("now"));
         $data = json_decode($request->getContent(), true);
         $date = new \DateTime($data['dateDrop']);
         $trackingWaitingShopScan = $repCheckParcelDrop->findRemainTracking($data['agentUserId'], $data['agentMerId'], $date);
@@ -791,6 +792,7 @@ class ParcelAgentApiController extends AbstractController
                 } else {
                     $checkParcelTracking->setDropMerId($data['shopMerId']);
                     $checkParcelTracking->setStatus(1);
+                    $checkParcelTracking->setRecordDate(new \DateTime($dateToday, new \DateTimeZone('Asia/Bangkok')));
                     $em->flush();
                     if ($trackingWaitingShopScan == null) {
                         $output = array("status" => "SUCCESS");

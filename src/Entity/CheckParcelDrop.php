@@ -70,6 +70,13 @@ class CheckParcelDrop
      */
     private $dropMerId;
 
+    /**
+     * @var \DateTime|null
+     *
+     * @ORM\Column(name="record_date", type="date", nullable=true)
+     */
+    private $recordDate;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -155,6 +162,18 @@ class CheckParcelDrop
     public function setDropMerId(?int $dropMerId): self
     {
         $this->dropMerId = $dropMerId;
+
+        return $this;
+    }
+
+    public function getRecordDate(): ?\DateTimeInterface
+    {
+        return $this->recordDate;
+    }
+
+    public function setRecordDate(?\DateTimeInterface $recordDate): self
+    {
+        $this->recordDate = $recordDate;
 
         return $this;
     }
