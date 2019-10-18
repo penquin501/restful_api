@@ -145,93 +145,98 @@ class ParcelAgentApiController extends AbstractController
         ) {
             $output = array('status' => "ERROR_DATA_NOT_COMPLETE");
         } else {
-            ///////////////////////////////////////All Info for Member Id///////////////////////////////////////////////
-            $splMerId = str_split($data['merId']);
-            foreach ($splMerId as $itemMerId) {
-                $sumMerId += intval($itemMerId);
-            }
+            $resultIdCardCheck = $this->validatePID($data['citizenId']);
+            if ($resultIdCardCheck == false) {
+                $output = ['status' => 'ERROR_ID_CARD_WRONG'];
+            } else {
+                ///////////////////////////////////////All Info for Member Id///////////////////////////////////////////
+                $splMerId = str_split($data['merId']);
+                foreach ($splMerId as $itemMerId) {
+                    $sumMerId += intval($itemMerId);
+                }
 
-            $splCountMember = str_split($countOnParcelMember + 1);
-            foreach ($splCountMember as $ItemCountMember) {
-                $sumCountMember += intval($ItemCountMember);
-            }
+                $splCountMember = str_split($countOnParcelMember + 1);
+                foreach ($splCountMember as $ItemCountMember) {
+                    $sumCountMember += intval($ItemCountMember);
+                }
 
-            $dateInput = date("ymd");
-            $splDateRecord = str_split($dateInput);
-            foreach ($splDateRecord as $itemDate) {
-                $sumDateRecord += intval($itemDate);
-            }
-            $strSumMember = strval($sumMerId + $sumCountMember + $sumDateRecord);
-            $splSumMember = str_split($strSumMember);
+                $dateInput = date("ymd");
+                $splDateRecord = str_split($dateInput);
+                foreach ($splDateRecord as $itemDate) {
+                    $sumDateRecord += intval($itemDate);
+                }
+                $strSumMember = strval($sumMerId + $sumCountMember + $sumDateRecord);
+                $splSumMember = str_split($strSumMember);
 
-            $memberId = $data['merId'] . ($countOnParcelMember + 1) . $dateInput . $splSumMember[count($splSumMember) - 1];
-            ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-            $pattern = '/^0\d{9}$/';
-            $phoneNO = trim($data['phone']);
-            if (preg_match($pattern, $phoneNO)) {
-                $arr = str_split($phoneNO);
-                if (isset($arr[0])) {
-                    if ($arr[0] == '0') {
-                        $phoneNO = '66';
-                        $passCode = '';
-                        for ($i = 1; $i < count($arr); $i++) {
-                            $phoneNO .= $arr[$i];
-                        }
-                        for ($j = 6; $j < count($arr); $j++) {
-                            $passCode .= $arr[$j];
+                $memberId = $data['merId'] . ($countOnParcelMember + 1) . $dateInput . $splSumMember[count($splSumMember) - 1];
+                ////////////////////////////////////////////////////////////////////////////////////////////////////////
+                $pattern = '/^0\d{9}$/';
+                $phoneNO = trim($data['phone']);
+                if (preg_match($pattern, $phoneNO)) {
+                    $arr = str_split($phoneNO);
+                    if (isset($arr[0])) {
+                        if ($arr[0] == '0') {
+                            $phoneNO = '66';
+                            $passCode = '';
+                            for ($i = 1; $i < count($arr); $i++) {
+                                $phoneNO .= $arr[$i];
+                            }
+                            for ($j = 6; $j < count($arr); $j++) {
+                                $passCode .= $arr[$j];
+                            }
                         }
                     }
                 }
-            }
-            ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-            if ($data['address'] == '') {
-                $address = null;
-            } else {
-                $address = $data['address'];
-            }
-            if ($data['imgBookBankUrl'] == '') {
-                $imgBankUrl = null;
-                $rawDataBank = null;
-                $recordDateBank = null;
-            } else {
-                $imgBankUrl = $data['imgBookBankUrl'];
-                $rawDataBank = $request->getContent();
-                $recordDateBank = new \DateTime("now", new \DateTimeZone('Asia/Bangkok'));
-            }
-            $logImg = new LogImgParcelAgent();
-            $logImg->setMemberId($memberId);
-            $logImg->setImgUrlCitizen($data['imgCitizenIdUrl']);
-            $logImg->setImgUrlBank($imgBankUrl);
-            $logImg->setRawDataRegister($request->getContent());
-            $logImg->setRawDataBank($rawDataBank);
-            $logImg->setRecordDateRegister(new \DateTime("now", new \DateTimeZone('Asia/Bangkok')));
-            $logImg->setRecordDateBank($recordDateBank);
-            $logImg->setSource('agent_register');
-            ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-            $parcelMember = new ParcelMember();
-            $parcelMember->setMerid($data['merId']);
-            $parcelMember->setMemberId($memberId);
-            $parcelMember->setCitizenid($data['citizenId']);
-            $parcelMember->setFirstname($data['firstName']);
-            $parcelMember->setLastname($data['lastName']);
-            $parcelMember->setAliasname($data['aliasName']);
-            $parcelMember->setRefAddress($address);
-            $parcelMember->setPhoneregis($phoneNO);
-            $parcelMember->setUsername($phoneNO);
-            $parcelMember->setPasscode($passCode);
-            $parcelMember->setBankacc($data['bankAcc']);
-            $parcelMember->setBankIssue($data['bankIssue']);
-            $parcelMember->setBankAccName($data['bankAccName']);
-            $parcelMember->setBankInfoProven('pass');
-            $parcelMember->setMemberTransferFee(20);
-            $parcelMember->setPeakValue('');
-            $parcelMember->setStatus('active');
+                ////////////////////////////////////////////////////////////////////////////////////////////////////////
+                if ($data['address'] == '') {
+                    $address = null;
+                } else {
+                    $address = $data['address'];
+                }
+                if ($data['imgBookBankUrl'] == '') {
+                    $imgBankUrl = null;
+                    $rawDataBank = null;
+                    $recordDateBank = null;
+                } else {
+                    $imgBankUrl = $data['imgBookBankUrl'];
+                    $rawDataBank = $request->getContent();
+                    $recordDateBank = new \DateTime("now", new \DateTimeZone('Asia/Bangkok'));
+                }
+                $logImg = new LogImgParcelAgent();
+                $logImg->setMemberId($memberId);
+                $logImg->setImgUrlCitizen($data['imgCitizenIdUrl']);
+                $logImg->setImgUrlBank($imgBankUrl);
+                $logImg->setRawDataRegister($request->getContent());
+                $logImg->setRawDataBank($rawDataBank);
+                $logImg->setRecordDateRegister(new \DateTime("now", new \DateTimeZone('Asia/Bangkok')));
+                $logImg->setRecordDateBank($recordDateBank);
+                $logImg->setSource('agent_register');
+                ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                $parcelMember = new ParcelMember();
+                $parcelMember->setMerid($data['merId']);
+                $parcelMember->setMemberId($memberId);
+                $parcelMember->setCitizenid($data['citizenId']);
+                $parcelMember->setFirstname($data['firstName']);
+                $parcelMember->setLastname($data['lastName']);
+                $parcelMember->setAliasname($data['aliasName']);
+                $parcelMember->setRefAddress($address);
+                $parcelMember->setPhoneregis($phoneNO);
+                $parcelMember->setUsername($phoneNO);
+                $parcelMember->setPasscode($passCode);
+                $parcelMember->setBankacc($data['bankAcc']);
+                $parcelMember->setBankIssue($data['bankIssue']);
+                $parcelMember->setBankAccName($data['bankAccName']);
+                $parcelMember->setBankInfoProven('pass');
+                $parcelMember->setMemberTransferFee(20);
+                $parcelMember->setPeakValue('');
+                $parcelMember->setStatus('active');
 
-            $em->persist($logImg);
-            $em->persist($parcelMember);
-            $em->flush();
+                $em->persist($logImg);
+                $em->persist($parcelMember);
+                $em->flush();
 
-            $output = array('status' => "SUCCESS");
+                $output = array('status' => "SUCCESS");
+            }
         }
         return $this->json($output);
     }
@@ -798,6 +803,33 @@ class ParcelAgentApiController extends AbstractController
             }
         }
         return $this->json($output);
+    }
+
+    public function validatePID($pid){
+        if(preg_match("/^(\d)(\d)(\d)(\d)(\d)(\d)(\d)(\d)(\d)(\d)(\d)(\d)(\d)$/", $pid, $matches)){ //ใช้ preg_match
+            if(strlen($pid) != 13){
+                $returncheck = false;
+            }else{
+                $rev = strrev($pid); // reverse string ขั้นที่ 0 เตรียมตัว
+                $total = 0;
+                for($i=1;$i<13;$i++){ // ขั้นตอนที่ 1 - เอาเลข 12 หลักมา เขียนแยกหลักกันก่อน
+                    $mul = $i +1;
+                    $count = $rev[$i]*$mul; // ขั้นตอนที่ 2 - เอาเลข 12 หลักนั้นมา คูณเข้ากับเลขประจำหลักของมัน
+                    $total = $total + $count; // ขั้นตอนที่ 3 - เอาผลคูณทั้ง 12 ตัวมา บวกกันทั้งหมด
+                }
+                $mod = $total % 11; //ขั้นตอนที่ 4 - เอาเลขที่ได้จากขั้นตอนที่ 3 มา mod 11 (หารเอาเศษ)
+                $sub = 11 - $mod; //ขั้นตอนที่ 5 - เอา 11 ตั้ง ลบออกด้วย เลขที่ได้จากขั้นตอนที่ 4
+                $check_digit = $sub % 10; //ถ้าเกิด ลบแล้วได้ออกมาเป็นเลข 2 หลัก ให้เอาเลขในหลักหน่วยมาเป็น Check Digit
+                if($rev[0] == $check_digit){  // ตรวจสอบ ค่าที่ได้ กับ เลขตัวสุดท้ายของ บัตรประจำตัวประชาชน
+                    $returncheck = true; /// ถ้า ตรงกัน แสดงว่าถูก
+                }else{
+                    $returncheck = false; // ไม่ตรงกันแสดงว่าผิด
+                }
+            }
+        }else{
+            $returncheck = false;
+        }
+        return $returncheck;
     }
 
 }
