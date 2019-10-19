@@ -210,7 +210,7 @@ class ParcelAgentApiController extends AbstractController
                 $logImg->setRawDataBank($rawDataBank);
                 $logImg->setRecordDateRegister(new \DateTime("now", new \DateTimeZone('Asia/Bangkok')));
                 $logImg->setRecordDateBank($recordDateBank);
-                $logImg->setSource('agent_register');
+                $logImg->setSource($data['source']);
                 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
                 $parcelMember = new ParcelMember();
                 $parcelMember->setMerid($data['merId']);
@@ -242,51 +242,6 @@ class ParcelAgentApiController extends AbstractController
     }
 
     /**
-     * @Route("/parcel/agent/generate/memberid/api", methods={"POST"})
-     */
-    public function genMemberId(Request $request,
-                                EntityManagerInterface $em,
-                                ParcelMemberRepository $repParcelMember
-    )
-    {
-        date_default_timezone_set("Asia/Bangkok");
-        $data = json_decode($request->getContent(), true);
-//        $countOnParcelMember = $repParcelMember->count(array('merid' => $data['branch_id']));
-        $countOnParcelMember = $data['maxMember'];
-        $sumMerId = 0;
-        $sumCountMember = 0;
-        $sumDateRecord = 0;
-
-        if ($countOnParcelMember == 0 || $countOnParcelMember == '') {
-            $output = array('status' => "ERROR_NO_MER_ID");
-        } else {
-            ///////////////////////////////////////All Info for Member Id///////////////////////////////////////////////
-            $splMerId = str_split($data['branch_id']);
-            foreach ($splMerId as $itemMerId) {
-                $sumMerId += intval($itemMerId);
-            }
-
-            $splCountMember = str_split($countOnParcelMember + 1);
-            foreach ($splCountMember as $ItemCountMember) {
-                $sumCountMember += intval($ItemCountMember);
-            }
-
-            $dateInput = date("ymd");
-            $splDateRecord = str_split($dateInput);
-            foreach ($splDateRecord as $itemDate) {
-                $sumDateRecord += intval($itemDate);
-            }
-            $strSumMember = strval($sumMerId + $sumCountMember + $sumDateRecord);
-            $splSumMember = str_split($strSumMember);
-
-            $memberId = $data['branch_id'] . ($countOnParcelMember + 1) . $dateInput . $splSumMember[count($splSumMember) - 1];
-            $output = array('status' => "SUCCESS",
-                'memberId' => $memberId);
-        }
-        return $this->json($output);
-    }
-
-    /**
      * @Route("/parcel/agent/update/cod/register/api", methods={"POST"})
      */
     public function updateCodRegister(Request $request,
@@ -300,7 +255,7 @@ class ParcelAgentApiController extends AbstractController
         $data = json_decode($request->getContent(), true);
         $parcelMemberInfo = $repParcelMember->findOneBy(array('phoneregis' => $data['phoneRegis']));
 
-        if ( $data['phoneRegis'] == '' || $data['address'] == '' || $data['bankAccName'] == '' || $data['bankIssue'] == '' || $data['bankAcc'] == '' || $data['imgBookBankUrl'] == '') {
+        if ( $data['phoneRegis'] == '' || $data['bankAccName'] == '' || $data['bankIssue'] == '' || $data['bankAcc'] == '' || $data['imgBookBankUrl'] == '') {
             $output = array('status' => "ERROR_DATA_NOT_COMPLETE");
         } elseif ($parcelMemberInfo == null) {
             $output = ['status' => 'Error_No_Member_Info'];
@@ -363,66 +318,6 @@ class ParcelAgentApiController extends AbstractController
         return $this->json($bankInfo);
     }
 
-    /**
-     * @Route("/parcel/list/member/api", methods={"POST"})
-     */
-    public function selectParcelMember(Request $request, ParcelMemberRepository $repParcelMember)
-    {
-//        header("Access-Control-Allow-Origin: *");
-        $data = json_decode($request->getContent(), true);
-
-        $entityManager = $this->getDoctrine()->getManager();
-        $sql = "SELECT member_id,citizenid,firstname,lastname,aliasname,ref_address as address,phoneregis FROM parcel_member where merid=".$data['branch_id'];
-        $listMember = $entityManager->getConnection()->query($sql);
-
-        return $this->json($listMember);
-    }
-
-    /**
-     * @Route("/parcel/check/member/api", methods={"POST"})
-     */
-    public function checkParcelMemberInfo(Request $request, ParcelMemberRepository $repParcelMember)
-    {
-        $data = json_decode($request->getContent(), true);
-
-        $entityManager = $this->getDoctrine()->getManager();
-        $sql = "SELECT member_id as member_code, merid as branch_id,firstname as first_name, lastname as last_name,phoneregis as phone, ref_address as address, bankacc as bank_account_no,bank_acc_name,bank_issue as bank_name ".
-            "FROM parcel_member WHERE merid=".$data['merId']." AND ";
-
-        $patternId = '/^([1-9]{1})\d{12}$/';
-        $patternPhone = '/^66\d{9}$/';
-        $memberCode = trim($data['member_code']);
-        $splMemberCode = str_split($memberCode);
-
-        if(count($splMemberCode)==13 && preg_match($patternId,$memberCode)){
-            $sql.="citizenid ='" . $memberCode."'";
-        } elseif(count($splMemberCode)==11 && preg_match($patternPhone,$memberCode)) {
-            $sql.="phoneregis ='" . $memberCode."'";
-        } else {
-            $sql.="member_id ='" . $memberCode."'";
-        }
-
-        $selectMemberInfo = $entityManager->getConnection()->query($sql);
-        $memberInfo = json_decode($this->json($selectMemberInfo)->getContent(), true);
-
-        if($memberInfo==[]){
-            $output=['status'=>'ERROR_NOT_FOUND'];
-        } else {
-            $output = ['status' => 'SUCCESS',
-                'member_code' => $memberInfo[0]['member_code'],
-                'branch_id' => $memberInfo[0]['branch_id'],
-                'first_name' => $memberInfo[0]['first_name'],
-                'last_name' => $memberInfo[0]['last_name'],
-                'phone' => $memberInfo[0]['phone'],
-                'address' => $memberInfo[0]['address'],
-                'bank_account_no' => $memberInfo[0]['bank_account_no'],
-                'bank_acc_name' => $memberInfo[0]['bank_acc_name'],
-                'bank_name' => $memberInfo[0]['bank_name']
-            ];
-        }
-
-        return $this->json($output);
-    }
     ////////////////////////////////////////////////////Quick Link Part/////////////////////////////////////////////////
 
     /**
