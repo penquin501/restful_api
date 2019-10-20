@@ -255,7 +255,7 @@ class ParcelAgentApiController extends AbstractController
         $data = json_decode($request->getContent(), true);
         $parcelMemberInfo = $repParcelMember->findOneBy(array('phoneregis' => $data['phoneRegis']));
 
-        if ( $data['phoneRegis'] == '' || $data['bankAccName'] == '' || $data['bankIssue'] == '' || $data['bankAcc'] == '' || $data['imgBookBankUrl'] == '') {
+        if ($data['phoneRegis'] == '' || $data['bankAccName'] == '' || $data['bankIssue'] == '' || $data['bankAcc'] == '' || $data['imgBookBankUrl'] == '') {
             $output = array('status' => "ERROR_DATA_NOT_COMPLETE");
         } elseif ($parcelMemberInfo == null) {
             $output = ['status' => 'Error_No_Member_Info'];
@@ -331,30 +331,45 @@ class ParcelAgentApiController extends AbstractController
                                              GlobalProductRepository $repGlobalProduct,
                                              ParcelMemberRepository $repParcelMember,
                                              GlobalProductImageRepository $repGlobalProductImg,
-                                             GlobalWarehouseRepository $repGlobalWarehouse
-    )
-    {
+                                             GlobalWarehouseRepository $repGlobalWarehouse,
+                                             MerchantBillingRepository $repMerchantBilling
+    ) {
         date_default_timezone_set("Asia/Bangkok");
         $data = json_decode($request->getContent(), true);
         $dateToday = date("Y-m-d H:i:s", strtotime("now"));
         $dateExpire = date("Y-m-d H:i:s", strtotime("now" . "+3 Days"));
-
+        $tracks = [];
         if ($data['agentMerId'] != $data['senderMerId']) {
             $output = array('status' => 'ERROR_MER_ID_NOT_MATCH');
         } else {
-            ///////////////////////////////////////////GEN PARCEL BILL NO///////////////////////////////////////////////
-            $parcelBillNo = $data['agentMerId'] . '-' . $data['agentUserId'] . '-' . date("ymdHis") . '-' . rand(111, 999);
-            ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-            foreach ($data['trackingList'] as $item) {
+            foreach ($data['trackingList'] as $itemTracking) {
                 $patternTracking11 = '/^[T|t][D|d][Z|z]+[0-9]{8}?$/i';
                 $patternTracking12 = '/^[T|t][D|d][Z|z]+[0-9]{8}[A-Z]?$/i';
-                $tracking = trim($item['tracking']);
+                $tracking = trim($itemTracking['tracking']);
+
                 $newTrackingArr = str_split($tracking);
                 if ((count($newTrackingArr) == 11) && (!preg_match($patternTracking11, $tracking))) {
                     $output = array('status' => 'ERROR_TRACKING_WRONG_FORMAT');
                 } elseif ((count($newTrackingArr) == 12) && (!preg_match($patternTracking12, $tracking))) {
                     $output = array('status' => 'ERROR_TRACKING_WRONG_FORMAT');
                 } else {
+                    $tracks[] = $itemTracking['tracking'];
+                }
+            }
+            $meet_require = true;
+            foreach ($tracks as $track) {
+                $checkParcelRef = $repMerchantBilling->count(array('parcelRef' => $track));
+                if ($checkParcelRef > 0) {
+                    $meet_require = false;
+                }
+            }
+            if ($meet_require == false) {
+                $output = array('status' => 'ERROR_DUPLICATE_TRACKING');
+            } else {
+                ///////////////////////////////////////////GEN PARCEL BILL NO///////////////////////////////////////////////
+                $parcelBillNo = $data['agentMerId'] . '-' . $data['agentUserId'] . '-' . date("ymdHis") . '-' . rand(111, 999);
+                ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                foreach ($data['trackingList'] as $item) {
                     //////////////////////////////////////GEN TRANSPORT PRICE///////////////////////////////////////////////
                     $districtCode = $repZipcode->findBy(array('zipcode' => $item['zipcode']));
                     $provinceId = str_split($districtCode[0]->getDistrictCode());
@@ -417,7 +432,6 @@ class ParcelAgentApiController extends AbstractController
                         $em->flush();
                         $em->getConnection()->exec('UNLOCK TABLES;');
                         ////////////////////////////////GEN NEW INVOICE/////////////////////////////////////////////////
-//                        dd($invId);
                         $prefix = $repMerchantConfig->findBy(array('takeorderby' => $data['agentMerId']));
                         $padMaxId = str_pad($invId, 5, "0", STR_PAD_LEFT);
                         $paymentInvoice = $prefix[0]->getInvPrefix() . date("ymd") . $padMaxId;
@@ -702,28 +716,29 @@ class ParcelAgentApiController extends AbstractController
         return $this->json($output);
     }
 
-    public function validatePID($pid){
-        if(preg_match("/^(\d)(\d)(\d)(\d)(\d)(\d)(\d)(\d)(\d)(\d)(\d)(\d)(\d)$/", $pid, $matches)){ //ใช้ preg_match
-            if(strlen($pid) != 13){
+    public function validatePID($pid)
+    {
+        if (preg_match("/^(\d)(\d)(\d)(\d)(\d)(\d)(\d)(\d)(\d)(\d)(\d)(\d)(\d)$/", $pid, $matches)) { //ใช้ preg_match
+            if (strlen($pid) != 13) {
                 $returncheck = false;
-            }else{
+            } else {
                 $rev = strrev($pid); // reverse string ขั้นที่ 0 เตรียมตัว
                 $total = 0;
-                for($i=1;$i<13;$i++){ // ขั้นตอนที่ 1 - เอาเลข 12 หลักมา เขียนแยกหลักกันก่อน
-                    $mul = $i +1;
-                    $count = $rev[$i]*$mul; // ขั้นตอนที่ 2 - เอาเลข 12 หลักนั้นมา คูณเข้ากับเลขประจำหลักของมัน
+                for ($i = 1; $i < 13; $i++) { // ขั้นตอนที่ 1 - เอาเลข 12 หลักมา เขียนแยกหลักกันก่อน
+                    $mul = $i + 1;
+                    $count = $rev[$i] * $mul; // ขั้นตอนที่ 2 - เอาเลข 12 หลักนั้นมา คูณเข้ากับเลขประจำหลักของมัน
                     $total = $total + $count; // ขั้นตอนที่ 3 - เอาผลคูณทั้ง 12 ตัวมา บวกกันทั้งหมด
                 }
                 $mod = $total % 11; //ขั้นตอนที่ 4 - เอาเลขที่ได้จากขั้นตอนที่ 3 มา mod 11 (หารเอาเศษ)
                 $sub = 11 - $mod; //ขั้นตอนที่ 5 - เอา 11 ตั้ง ลบออกด้วย เลขที่ได้จากขั้นตอนที่ 4
                 $check_digit = $sub % 10; //ถ้าเกิด ลบแล้วได้ออกมาเป็นเลข 2 หลัก ให้เอาเลขในหลักหน่วยมาเป็น Check Digit
-                if($rev[0] == $check_digit){  // ตรวจสอบ ค่าที่ได้ กับ เลขตัวสุดท้ายของ บัตรประจำตัวประชาชน
+                if ($rev[0] == $check_digit) {  // ตรวจสอบ ค่าที่ได้ กับ เลขตัวสุดท้ายของ บัตรประจำตัวประชาชน
                     $returncheck = true; /// ถ้า ตรงกัน แสดงว่าถูก
-                }else{
+                } else {
                     $returncheck = false; // ไม่ตรงกันแสดงว่าผิด
                 }
             }
-        }else{
+        } else {
             $returncheck = false;
         }
         return $returncheck;
