@@ -248,6 +248,7 @@ class ParcelAgentApiController extends AbstractController
                 }
             }
         }
+//        dd($output);
         return $this->json($output);
     }
 
@@ -354,32 +355,49 @@ class ParcelAgentApiController extends AbstractController
             $dateToday = date("Y-m-d H:i:s", strtotime("now"));
             $dateExpire = date("Y-m-d H:i:s", strtotime("now" . "+3 Days"));
             $tracks = [];
+            $output=[];
             if ($data['agentMerId'] != $data['senderMerId']) {
                 $output = array('status' => 'ERROR_MER_ID_NOT_MATCH');
             } else {
+                $meet_require = true;
                 foreach ($data['trackingList'] as $itemTracking) {
                     $patternTracking11 = '/^[T|t][D|d][Z|z]+[0-9]{8}?$/i';
                     $patternTracking12 = '/^[T|t][D|d][Z|z]+[0-9]{8}[A-Z]?$/i';
                     $tracking = trim($itemTracking['tracking']);
 
                     $newTrackingArr = str_split($tracking);
+
                     if ((count($newTrackingArr) == 11) && (!preg_match($patternTracking11, $tracking))) {
-                        $output = array('status' => 'ERROR_TRACKING_WRONG_FORMAT');
+
+                        return $this->json($output);
                     } elseif ((count($newTrackingArr) == 12) && (!preg_match($patternTracking12, $tracking))) {
                         $output = array('status' => 'ERROR_TRACKING_WRONG_FORMAT');
+
+                        return $this->json($output);
+                    } elseif (($itemTracking['transportType']=='cod') && ($itemTracking['codValue']==0)) {
+                        $output = array('status' => 'ERROR_WRONG_COD_VALUE');
+                        
+                        return $this->json($output);
                     } else {
                         $tracks[] = $itemTracking['tracking'];
+
                     }
                 }
-                $meet_require = true;
-                foreach ($tracks as $track) {
-                    $checkParcelRef = $repMerchantBilling->count(array('parcelRef' => $track));
-                    if ($checkParcelRef > 0) {
-                        $meet_require = false;
+
+                if(count($tracks)>0){
+                    foreach ($tracks as $track) {
+                        $checkParcelRef = $repMerchantBilling->count(array('parcelRef' => $track));
+                        if($checkParcelRef>0){
+                            $meet_require = false;
+                        }
                     }
+                } else {
+                    $meet_require = false;
                 }
+
                 if ($meet_require == false) {
                     $output = array('status' => 'ERROR_DUPLICATE_TRACKING');
+
                 } else {
                     ///////////////////////////////////////////GEN PARCEL BILL NO///////////////////////////////////////////////
                     $parcelBillNo = $data['agentMerId'] . '-' . $data['agentUserId'] . '-' . date("ymdHis") . '-' . rand(111, 999);
@@ -598,7 +616,7 @@ class ParcelAgentApiController extends AbstractController
             $data = json_decode($request->getContent(), true);
             $sumFee = 0;
 
-            $query = "SELECT mb.parcel_ref as tracking,mb.orderdate as orderDate,mb.ordername as orderName,mDetail.productname as productName,mDetail.delivery_fee as deliveryFee " .
+            $query = "SELECT mb.parcel_ref as tracking,mb.orderdate as orderDate,mb.ordername as orderName,mb.ordertransport as productType, mb.payment_amt as codValue, mDetail.productname as productName,mDetail.delivery_fee as deliveryFee " .
                 "FROM merchant_billing mb " .
                 "JOIN merchant_billing_detail mDetail " .
                 "ON mb.takeorderby=mDetail.takeorderby AND mb.payment_invoice=mDetail.payment_invoice " .
