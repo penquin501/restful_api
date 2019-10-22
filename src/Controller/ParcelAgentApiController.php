@@ -368,15 +368,13 @@ class ParcelAgentApiController extends AbstractController
                     $newTrackingArr = str_split($tracking);
 
                     if ((count($newTrackingArr) == 11) && (!preg_match($patternTracking11, $tracking))) {
-
+                        $output = array('status' => 'ERROR_TRACKING_WRONG_FORMAT');
                         return $this->json($output);
                     } elseif ((count($newTrackingArr) == 12) && (!preg_match($patternTracking12, $tracking))) {
                         $output = array('status' => 'ERROR_TRACKING_WRONG_FORMAT');
-
                         return $this->json($output);
                     } elseif (($itemTracking['transportType']=='cod') && ($itemTracking['codValue']==0)) {
                         $output = array('status' => 'ERROR_WRONG_COD_VALUE');
-                        
                         return $this->json($output);
                     } else {
                         $tracks[] = $itemTracking['tracking'];
