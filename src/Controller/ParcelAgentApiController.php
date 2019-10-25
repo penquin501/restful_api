@@ -660,16 +660,25 @@ class ParcelAgentApiController extends AbstractController
         /**
          * @Route("/parcel/agent/list/product/agent/api", methods={"POST"})
          */
-        public
-        function listProductAgentPost(Request $request,
+        public function listProductAgentPost(Request $request,
                                       MerchantProductRepository $repMerchantProduct,
                                       PostinfoZipcodesRepository $repZipcode
-        )
-        {
+        ) {
             date_default_timezone_set("Asia/Bangkok");
             $data = json_decode($request->getContent(), true);
             $districtCode = $repZipcode->findBy(array('zipcode' => $data['zipcode']));
             $provinceId = str_split($districtCode[0]->getDistrictCode());
+
+            $lowerParcelSize = strtolower($data['parcelSize']);
+            if ($lowerParcelSize == 'miniplus') {
+                $parcelSize = 'mini+';
+            } elseif ($lowerParcelSize == 'splus') {
+                $parcelSize = 's+';
+            } elseif ($lowerParcelSize == 'mplus') {
+                $parcelSize = 'm+';
+            } else {
+                $parcelSize = $lowerParcelSize;
+            }
 
             if ($data['transportType'] == 'normal' && $data['zipcode'] == '13180' && $data['provinceId'] == '4') {
                 //normal-ปทุมธานี
@@ -697,7 +706,7 @@ class ParcelAgentApiController extends AbstractController
                 $productIdSize = [17974, 171316, 17975, 17976, 17977, 17978, 17979, 17980, 17981];
             }
 
-            $parcelPriceSize = $repMerchantProduct->findParcelSizePrice($data['agentMerId'], $productIdSize, $data['parcelSize']);
+            $parcelPriceSize = $repMerchantProduct->findParcelSizePrice($data['agentMerId'], $productIdSize, $parcelSize);
             if ($parcelPriceSize == null) {
                 $output = ["status" => "ERROR_NOT_FOUND"];
             } else {
@@ -707,7 +716,7 @@ class ParcelAgentApiController extends AbstractController
             return $this->json($output);
         }
 
-        ////////////////////////////////////////////////////Shop Drop Part//////////////////////////////////////////////////
+        ////////////////////////////////////////////////////Shop Drop Part//////////////////////////////////////////////
 
         /**
          * @Route("/parcel/agent/shop/parcel/drop/api", methods={"POST"})
