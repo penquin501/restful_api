@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Repository\MerchantBillingRepository;
 use App\Repository\ParcelMemberRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -83,6 +84,51 @@ class ParcelController extends AbstractController
             $output=['status'=>'SUCCESS',
                 'memberInfo'=>$parcelMember
                 ];
+        }
+
+        return $this->json($output);
+    }
+
+    /**
+     * @Route("/parcel/check/tracking/list/api", methods={"POST"})
+     */
+    public function checkTrackingInBilling(Request $request,
+                                           MerchantBillingRepository $repMerchantBilling
+    )  {
+        $data = json_decode($request->getContent(), true);
+        $meet_require = true;
+        $tracks = [];
+        foreach ($data['trackingList'] as $itemTracking) {
+            $patternTracking11 = '/^[T|t][D|d][Z|z]+[0-9]{8}?$/i';
+            $patternTracking12 = '/^[T|t][D|d][Z|z]+[0-9]{8}[A-Z]?$/i';
+            $tracking = trim($itemTracking['tracking']);
+
+            if ((mb_strlen($tracking, 'UTF-8')==11) && !(preg_match($patternTracking11, $tracking))) {
+                $output = array('status' => 'ERROR_TRACKING_WRONG_FORMAT');
+                return $this->json($output);
+            } elseif ((mb_strlen($tracking, 'UTF-8')==12) && (!preg_match($patternTracking12, $tracking))) {
+                $output = array('status' => 'ERROR_TRACKING_WRONG_FORMAT');
+                return $this->json($output);
+            } else {
+                $tracks[] = $itemTracking['tracking'];
+            }
+        }
+        if(count($tracks)>0){
+            foreach ($tracks as $track) {
+                $checkParcelRef = $repMerchantBilling->count(array('parcelRef' => $track));
+                if($checkParcelRef>0){
+                    $meet_require = false;
+                }
+            }
+        } else {
+            $meet_require = false;
+        }
+
+        if ($meet_require == false) {
+            $output = array('status' => 'ERROR_TRACKING_DUPLICATED');
+
+        } else {
+            $output = array('status' => true);
         }
 
         return $this->json($output);
