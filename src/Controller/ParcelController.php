@@ -103,7 +103,10 @@ class ParcelController extends AbstractController
             $patternTracking12 = '/^[T|t][D|d][Z|z]+[0-9]{8}[A-Z]?$/i';
             $tracking = trim($itemTracking['tracking']);
 
-            if ((mb_strlen($tracking, 'UTF-8')==11) && !(preg_match($patternTracking11, $tracking))) {
+            if((mb_strlen($tracking, 'UTF-8')!=11) && (mb_strlen($tracking, 'UTF-8')!=12)){
+                $output = array('status' => 'ERROR_TRACKING_WRONG_FORMAT');
+                return $this->json($output);
+            } elseif ((mb_strlen($tracking, 'UTF-8')==11) && !(preg_match($patternTracking11, $tracking))) {
                 $output = array('status' => 'ERROR_TRACKING_WRONG_FORMAT');
                 return $this->json($output);
             } elseif ((mb_strlen($tracking, 'UTF-8')==12) && (!preg_match($patternTracking12, $tracking))) {
