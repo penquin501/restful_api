@@ -19,12 +19,12 @@ class MerchantConfigRepository extends ServiceEntityRepository
         parent::__construct($registry, MerchantConfig::class);
     }
 
-    public function findMerchantName($merId)
+    public function findMerchantName()
     {
         return $this->createQueryBuilder('m')
-            ->select('m.merchantname as merchantName')
-            ->Where('m.takeorderby = :merId')
-            ->setParameter('merId', $merId)
+            ->select('m.takeorderby as merId, m.merchantname as merchantName')
+            ->Where('m.takeorderby IN (16,188)')
+//            ->setParameter('merId', $merId)
             ->getQuery()
             ->getResult()
             ;

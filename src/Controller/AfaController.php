@@ -12,6 +12,7 @@ use App\Entity\LogImgParcelAgent;
 
 use App\Repository\GlobalAuthenRepository;
 use App\Repository\LogImgParcelAgentRepository;
+use App\Repository\MerchantConfigRepository;
 
 class AfaController extends AbstractController
 {
@@ -21,20 +22,16 @@ class AfaController extends AbstractController
     public function afaRegister(Request $request,
                                 EntityManagerInterface $em,
                                 GlobalAuthenRepository $repGlobelAuthen,
-                                LogImgParcelAgentRepository $repImgParcel
+                                MerchantConfigRepository $repMerchantConfig
     ){
         date_default_timezone_set("Asia/Bangkok");
         $data = json_decode($request->getContent(), true);
 
-        if ($data['phone'] == '' || $data['firstName'] == '' || $data['lastName'] == '' || $data['idCard'] == '') {
+        if ($data['merId'] == '' || $data['phone'] == '' || $data['firstName'] == '' || $data['lastName'] == '' || $data['citizenId'] == '') {
             $output = ['status' => 'ERROR_DATA_NOT_COMPLETE'];
         } else {
-            $resultIdCardCheck=$this->validatePID($data['idCard']);
-//            $patternId = '/^([1-9]{1})\d{12}$/';
-//            $idCard = trim($data['idCard']);
-//            $arrIdCard = str_split($idCard);
-//            if((count($arrIdCard) < 0  && count($arrIdCard)>13) || !preg_match($patternId,$idCard)) {
-//                $output = ['status' => 'ERROR_ID_CARD_WRONG'];
+            $resultIdCardCheck=$this->validatePID($data['citizenId']);
+
             if($resultIdCardCheck==false){
                 $output = ['status' => 'ERROR_ID_CARD_WRONG'];
             } elseif ($data['phone'][0] . $data['phone'][1] != '06' && $data['phone'][0] . $data['phone'][1] != '08' && $data['phone'][0] . $data['phone'][1] != '09') {
@@ -55,17 +52,19 @@ class AfaController extends AbstractController
                     }
                     ////////////////////////////////////////////////////////////////////////////////////////////////////
                     $checkPhone = $repGlobelAuthen->count(array('phoneno' => $phoneNO));
+                    $checkMerchant=$repMerchantConfig->count(array('takeorderby' => $data['merId']));
                     if ($checkPhone > 0) {
                         $output = ['status' => 'ERROR_DUPLICATED_PHONE'];
-                    } elseif($data['merId']!= 188) {
+                    } elseif($checkMerchant<=0) {
                         $output = ['status' => 'ERROR_WRONG_MER_ID'];
                     } else {
                         $newImgCitizenId= new LogImgParcelAgent();
-                        $newImgCitizenId->setMemberId($data['idCard']);
-                        $newImgCitizenId->setImgUrlCitizen($data['imgUpload']);
+                        $newImgCitizenId->setMemberId($data['citizenId']);
+                        $newImgCitizenId->setImgUrlCitizen($data['imgCitizenIdUrl']);
+                        $newImgCitizenId->setImgUrlBank($data['imgBookBankUrl']);
                         $newImgCitizenId->setRawDataRegister($request->getContent());
                         $newImgCitizenId->setRecordDateRegister(new \DateTime("now", new \DateTimeZone('Asia/Bangkok')));
-                        $newImgCitizenId->setSource('afa_register');
+                        $newImgCitizenId->setSource($data['source']);
 
                         $newUser = new GlobalAuthen();
                         $newUser->setAfaUser('no');
@@ -77,7 +76,7 @@ class AfaController extends AbstractController
                         $newUser->setPwrd('');
                         $newUser->setFname($data['firstName'] . " " . $data['lastName']);
                         $newUser->setPhoneno($phoneNO);
-                        $newUser->setIdcard($data['idCard']);
+                        $newUser->setIdcard($data['citizenId']);
                         $newUser->setAuthenlevel('user');
                         $newUser->setPermission(null);
                         $newUser->setLang('th');
@@ -92,6 +91,16 @@ class AfaController extends AbstractController
             }
         }
         return $this->json($output);
+    }
+
+    /**
+     * @Route("/afa/merchant/name/api", methods={"GET"})
+     */
+    public function selectMerchantName(Request $request,
+                                       MerchantConfigRepository $repMerchantConfig
+    ) {
+        $listMerchant=$repMerchantConfig->findMerchantName();
+        return $this->json(['listMerchantName'=>$listMerchant]);
     }
 
     public function validatePID($pid){
