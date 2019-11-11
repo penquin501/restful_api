@@ -17,12 +17,23 @@ class ParcelController extends AbstractController
     {
 //        header("Access-Control-Allow-Origin: *");
         $data = json_decode($request->getContent(), true);
+        if($data['branch_id']==''){
+            $output=['status'=>'ERROR_DATA_NOT_COMPLETE'];
+        } else {
+            $entityManager = $this->getDoctrine()->getManager();
+            $sql = "SELECT member_id,citizenid,firstname,lastname,aliasname,ref_address as address,phoneregis FROM parcel_member where merid=".$data['branch_id'];
+            $listMember = $entityManager->getConnection()->query($sql);
+            $memberInfo=json_decode($this->json($listMember)->getContent(), true);
 
-        $entityManager = $this->getDoctrine()->getManager();
-        $sql = "SELECT member_id,citizenid,firstname,lastname,aliasname,ref_address as address,phoneregis FROM parcel_member where merid=".$data['branch_id'];
-        $listMember = $entityManager->getConnection()->query($sql);
+            if(count($memberInfo)==0){
+                $output=['status'=>'ERROR_DATA_NOT_FOUND'];
+            } else {
+                $output=['status'=>'SUCCESS',
+                    'listMember'=>$memberInfo];
+            }
+        }
 
-        return $this->json($listMember);
+        return $this->json($output);
     }
 
     /**
