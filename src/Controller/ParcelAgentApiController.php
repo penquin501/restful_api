@@ -601,9 +601,10 @@ class ParcelAgentApiController extends AbstractController
                                     $merchantBillingDelivery->setCodPrice($item['codValue']);
                                     $merchantBillingDelivery->setExpenseDiscount(0);
                                     $merchantBillingDelivery->setGlobalWarehouse($globalWarehouse[0]->getWarehouseTier());
-                                    $merchantBillingDelivery->setWarehouseId($globalProduct[0]->getWarehouse());
+//                                    $merchantBillingDelivery->setWarehouseId($globalProduct[0]->getWarehouse());
+                                    $merchantBillingDelivery->setWarehouseId(0);
                                     $merchantBillingDelivery->setMailcode($item['tracking']);
-                                    $merchantBillingDelivery->setTransporterId(1);
+                                    $merchantBillingDelivery->setTransporterId(0);
                                     $merchantBillingDelivery->setProductParcelSize(0);
                                     $merchantBillingDelivery->setPrepareMailcode($item['tracking']);
                                     ///////////////////////////////////INSERT FLAG TRACKING DATA////////////////////////////////////////
