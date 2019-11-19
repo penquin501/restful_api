@@ -699,7 +699,7 @@ class ParcelAgentApiController extends AbstractController
     }
 
     /**
-     * @Route("/parcel/agent/list/product/agent/api", methods={"POST"})
+     * @Route("/parcel/agent/product/price/agent/api", methods={"POST"})
      */
     public function listProductAgentPost(Request $request,
                                          MerchantProductRepository $repMerchantProduct,
