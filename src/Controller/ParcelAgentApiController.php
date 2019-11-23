@@ -777,7 +777,6 @@ class ParcelAgentApiController extends AbstractController
         date_default_timezone_set("Asia/Bangkok");
         $dateToday = date("Y-m-d", strtotime("now"));
         $data = json_decode($request->getContent(), true);
-//        dd($data);
         if($data['dateDrop']=='' || $data['agentUserId']=='' || $data['agentMerId']=='' || $data['shopMerId']==''){
             $output = ["status" => "ERROR_DATA_NOT_COMPLETE"];
         } else {
