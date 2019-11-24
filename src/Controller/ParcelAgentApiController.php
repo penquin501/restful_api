@@ -201,8 +201,6 @@ class ParcelAgentApiController extends AbstractController
                         $memberId = $data['merId'] . ($countOnParcelMember + 1) . $dateInput . $splSumMember[count($splSumMember) - 1];
                         ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-                        ////////////////////////////////////////////////////////////////////////////////////////////////////////
-
                         if ($data['address'] == '') {
                             $address = null;
                         } else {
@@ -239,6 +237,7 @@ class ParcelAgentApiController extends AbstractController
                         $parcelMember->setUsername($phoneNO);
                         $parcelMember->setPasscode($passCode);
                         $parcelMember->setBankacc($data['bankAcc']);
+                        $parcelMember->setBankBranchCode($data['bankBranchCode']);
                         $parcelMember->setBankIssue($data['bankIssue']);
                         $parcelMember->setBankAccName($data['bankAccName']);
                         $parcelMember->setBankInfoProven('pass');
@@ -255,7 +254,6 @@ class ParcelAgentApiController extends AbstractController
                 }
             }
         }
-//        dd($output);
         return $this->json($output);
     }
 
@@ -281,6 +279,7 @@ class ParcelAgentApiController extends AbstractController
         } else {
             $parcelMemberInfo->setRefAddress($data['address']);
             $parcelMemberInfo->setBankacc($data['bankAcc']);
+            $parcelMemberInfo->setBankBranchCode($data['bankBranchCode']);
             $parcelMemberInfo->setBankAccName($data['bankAccName']);
             $parcelMemberInfo->setBankIssue($data['bankIssue']);
 
