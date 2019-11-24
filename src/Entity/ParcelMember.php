@@ -66,7 +66,7 @@ class ParcelMember
     /**
      * @var string|null
      *
-     * @ORM\Column(name="ref_address", type="string", length=200, nullable=true)
+     * @ORM\Column(name="ref_address", type="string", length=250, nullable=true)
      */
     private $refAddress;
 
@@ -97,6 +97,13 @@ class ParcelMember
      * @ORM\Column(name="bankacc", type="string", length=20, nullable=true)
      */
     private $bankacc;
+
+    /**
+     * @var string|null
+     *
+     * @ORM\Column(name="bank_branch_code", type="string", length=5, nullable=true)
+     */
+    private $bankBranchCode;
 
     /**
      * @var string|null
@@ -280,6 +287,18 @@ class ParcelMember
     public function setBankacc(?string $bankacc): self
     {
         $this->bankacc = $bankacc;
+
+        return $this;
+    }
+
+    public function getBankBranchCode(): ?string
+    {
+        return $this->bankBranchCode;
+    }
+
+    public function setBankBranchCode(?string $bankBranchCode): self
+    {
+        $this->bankBranchCode = $bankBranchCode;
 
         return $this;
     }
