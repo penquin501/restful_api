@@ -260,19 +260,17 @@ class ParcelAgentApiController extends AbstractController
     /**
      * @Route("/parcel/agent/update/cod/register/api", methods={"POST"})
      */
-    public
-    function updateCodRegister(Request $request,
+    public function updateCodRegister(Request $request,
                                EntityManagerInterface $em,
                                ParcelMemberRepository $repParcelMember,
                                LogImgParcelAgentRepository $repImgParcelAgent
 
-    )
-    {
+    ) {
         date_default_timezone_set("Asia/Bangkok");
         $data = json_decode($request->getContent(), true);
         $parcelMemberInfo = $repParcelMember->findOneBy(array('phoneregis' => $data['phoneRegis']));
 
-        if ($data['phoneRegis'] == '' || $data['bankAccName'] == '' || $data['bankIssue'] == '' || $data['bankAcc'] == '' || $data['imgBookBankUrl'] == '') {
+        if ($data['phoneRegis'] == '' || $data['bankAccName'] == '' || $data['bankIssue'] == '' || $data['bankAcc'] == '' || $data['imgBookBankUrl'] == '' ||$data['source']=='') {
             $output = array('status' => "ERROR_DATA_NOT_COMPLETE");
         } elseif ($parcelMemberInfo == null) {
             $output = ['status' => 'Error_No_Member_Info'];
@@ -283,7 +281,7 @@ class ParcelAgentApiController extends AbstractController
             $parcelMemberInfo->setBankAccName($data['bankAccName']);
             $parcelMemberInfo->setBankIssue($data['bankIssue']);
 
-            $imgBankInfo = $repImgParcelAgent->findOneBy(array('memberId' => $parcelMemberInfo->getMemberId()));
+            $imgBankInfo = $repImgParcelAgent->findOneBy(array('memberId' => $parcelMemberInfo->getMemberId(),'source'=>$data['source']));
 
             if ($imgBankInfo == null) {
                 $logImg = new LogImgParcelAgent();
