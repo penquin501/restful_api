@@ -7,9 +7,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\HttpFoundation\Request;
 
-use App\Entity\CounterData;
 use App\Repository\MerchantBillingRepository;
-use App\Repository\CounterDataRepository;
 
 class DeliverApiController extends AbstractController
 {
@@ -114,8 +112,10 @@ class DeliverApiController extends AbstractController
     /**
      * @Route("/deliver/save/data/api", methods={"POST"})
      */
-    public function saveCounterData(Request $request, EntityManagerInterface $em, MerchantBillingRepository $repMerchantBilling)
-    {
+    public function saveCounterData(Request $request,
+                                    EntityManagerInterface $em,
+                                    MerchantBillingRepository $repMerchantBilling
+    ) {
         date_default_timezone_set("Asia/Bangkok");
 
         $output = [];
@@ -126,8 +126,7 @@ class DeliverApiController extends AbstractController
         $data = json_decode($request->getContent(), true);
 
         if ($data['trackingNo'] == '' || $data['merId'] == '' || $data['userId'] == '' || $data['transporter'] == '' ||
-            $data['licensePlate'] == '' || $data['operator'] == '' || $data['signature'] == '' ||
-            $data['trackingDatestamp'] == '' || $data['trackingTimestamp'] == '') {
+            $data['licensePlate'] == '' || $data['operator'] == '' || $data['signature'] == '' || $data['trackingTimestamp'] == '') {
             $output = ["status" => "ERROR_DATA_NOT_COMPLETE"];
             return $this->json($output);
         } else if(!preg_match($patternUrl, $data['signature'])){
@@ -147,12 +146,16 @@ class DeliverApiController extends AbstractController
                 if($checkReceiverInfo==null){
                     $output = ["status" => "ERROR_NO_DATA_BILLING"];
                 } else {
+                    $trackingDateStamp=date("Y-m-d", strtotime($data['trackingTimestamp']));
 
+                    $newCounterData="INSERT INTO counter_data(id, mer_id, user_id, tracking_no, transporter, license_plate, operator, signature, scan_date, scan_time, tracking_datestamp, tracking_timestamp) ".
+                        "VALUES ('".$data['id']."','".$data['merId']."','".$data['userId']."','".$data['trackingNo']."','".$data['transporter']."','".$data['licensePlate']."','".$data['operator']."','".$data['signature']."',null,null,'".$trackingDateStamp."','".$data['trackingTimestamp']."')";
+                    $em->getConnection()->query($newCounterData);
+
+                    $output = ["status" => "SUCCESS"];
                 }
             }
         }
-dd($output);
-
         return $this->json($output);
     }
 
