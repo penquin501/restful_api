@@ -291,6 +291,7 @@ class ParcelAgentApiController extends AbstractController
 //                    $logImg->setRawDataRegister($request->getContent());
                 $logImg->setRawDataBank($request->getContent());
                 $logImg->setRecordDateBank(new \DateTime("now", new \DateTimeZone('Asia/Bangkok')));
+                $logImg->setSource($data['source']);
                 $em->persist($logImg);
             } else {
                 $imgBankInfo->setImgUrlBank($data['imgBookBankUrl']);
