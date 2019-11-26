@@ -64,11 +64,7 @@ class ServiceController extends AbstractController
     public function selectDataZipcode(Request $request)
     {
         $entityManager = $this->getDoctrine()->getManager();
-        $sql = "SELECT d.DISTRICT_NAME,a.AMPHUR_NAME, p.PROVINCE_NAME,z.zipcode " .
-            "FROM postinfo_district d " .
-            "JOIN postinfo_amphur a ON d.AMPHUR_ID=a.AMPHUR_ID " .
-            "JOIN postinfo_province p ON d.PROVINCE_ID=p.PROVINCE_ID " .
-            "JOIN postinfo_zipcodes z ON d.DISTRICT_CODE=z.district_code";
+        $sql = "SELECT DISTINCT zipcode FROM postinfo_zipcodes WHERE zipcode != '00000' ORDER BY zipcode ASC";
 
         $listAddress = $entityManager->getConnection()->query($sql);
         return $this->json($listAddress);
