@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Repository\MerchantBillingRepository;
 use App\Repository\ParcelMemberRepository;
+use App\Repository\LogImgParcelAgentRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
@@ -148,7 +149,31 @@ class ParcelController extends AbstractController
 
         return $this->json($output);
     }
+    /**
+     * @Route("/parcel/select/img/url/api", methods={"POST"})
+     */
+    public function selectImgUrl(Request $request,
+                                 LogImgParcelAgentRepository $repLogImg
+    )  {
+        $data = json_decode($request->getContent(), true);
 
+        if($data['member_code']=='' || $data['source']==''){
+            $output=['status'=>'ERROR_DATA_NOT_COMPLETE'];
+        } else {
+            $urlImg=$repLogImg->findBy(array('memberId'=>$data['member_code'],'source'=>$data['source']));
+            if($urlImg==null){
+                $output=['status'=>'ERROR_NO_DATA_IMG'];
+            } else {
+                $output=['status'=>'SUCCESS',
+                         'memberImgIng'=>['imgUrlCitizen'=>$urlImg[0]->getImgUrlCitizen(),
+                         'imgUrlBank'=>$urlImg[0]->getImgUrlBank()
+
+                    ]
+                ];
+            }
+        }
+        return $this->json($output);
+    }
     public function validatePID($pid){
         if(preg_match("/^(\d)(\d)(\d)(\d)(\d)(\d)(\d)(\d)(\d)(\d)(\d)(\d)(\d)$/", $pid, $matches)){ //ใช้ preg_match
             if(strlen($pid) != 13){
