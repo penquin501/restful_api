@@ -147,9 +147,10 @@ class DeliverApiController extends AbstractController
                     $output = ["status" => "ERROR_NO_DATA_BILLING"];
                 } else {
                     $trackingDateStamp=date("Y-m-d", strtotime($data['trackingTimestamp']));
+                    $randomStr=$this->generateId($data['transporter'],$data['trackingNo'],$data['licensePlate'],$data['operator'],$em);
 
                     $newCounterData="INSERT INTO counter_data(id, mer_id, user_id, tracking_no, transporter, license_plate, operator, signature, scan_date, scan_time, tracking_datestamp, tracking_timestamp) ".
-                        "VALUES ('".$data['id']."','".$data['merId']."','".$data['userId']."','".$data['trackingNo']."','".$data['transporter']."','".$data['licensePlate']."','".$data['operator']."','".$data['signature']."',null,null,'".$trackingDateStamp."','".$data['trackingTimestamp']."')";
+                        "VALUES ('".$randomStr."','".$data['merId']."','".$data['userId']."','".$data['trackingNo']."','".$data['transporter']."','".$data['licensePlate']."','".$data['operator']."','".$data['signature']."',null,null,'".$trackingDateStamp."','".$data['trackingTimestamp']."')";
                     $em->getConnection()->query($newCounterData);
 
                     $output = ["status" => "SUCCESS"];
@@ -158,5 +159,41 @@ class DeliverApiController extends AbstractController
         }
         return $this->json($output);
     }
+
+    public function generateId($transporter,$trackingNo,$licensePlate,$operator,$em) {
+        $mtime = str_replace(".","",microtime(true));
+        $keystring = $this->generateRandomString();
+        $keystring = sha1($keystring.uniqid(true).md5(date("ymdHisU").rand(11111,99999))).$transporter.$trackingNo.$licensePlate.$operator.md5($keystring.$operator.uniqid(true).sha1(date("ymdHisU").microtime(true).rand(11111,99999))).uniqid(true);
+        $keystring = date("ymdHis").$mtime.$keystring;
+
+        while($this->isUniqueID($keystring,$em)){ //if string is unique, while loop stops.
+            $keystring = $this->generateRandomString();
+            $keystring = sha1($keystring.uniqid(true).md5(date("ymdHisU").rand(11111,99999).rand(111,999))).$transporter.$trackingNo.$licensePlate.$operator.md5($keystring.$operator.$trackingNo.uniqid(true).sha1(date("ymdHisU").microtime(true).rand(11111,99999))).uniqid(true);
+            $keystring = date("ymdHis").$mtime.$keystring;
+        }
+        unset($mtime);
+        return $keystring;
+    }
+
+    public function generateRandomString() {
+        $chars = array_merge(range('a', 'z'), range(0, 9));
+        shuffle($chars);
+        return implode(array_slice($chars, 0,25));
+    }
+
+    private function isUniqueID($string,$em){
+        $query = "SELECT id FROM counter_data WHERE id = '".$string."'";
+        $checkId = $em->getConnection()->query($query);
+        $id = json_decode($this->json($checkId)->getContent(), true);
+
+        if($id==null) {
+            $return = false;
+        } else {
+            $return = true;
+        }
+
+        return $return;
+    }
+
 
 }
