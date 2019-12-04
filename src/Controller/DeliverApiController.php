@@ -8,14 +8,17 @@ use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\HttpFoundation\Request;
 
 use App\Repository\MerchantBillingRepository;
+use App\Repository\MerchantBillingDeliveryRepository;
 
 class DeliverApiController extends AbstractController
 {
     /**
      * @Route("/deliver/check/receiver/info/api", methods={"GET"})
      */
-    public function checkReceiverInfo(Request $request, MerchantBillingRepository $repMerchantBilling)
-    {
+    public function checkReceiverInfo(Request $request,
+                                      MerchantBillingRepository $repMerchantBilling,
+                                      MerchantBillingDeliveryRepository $repMerchantDelivery
+    ) {
         $getTracking = $request->query->get('tracking');
 
         $patternTracking11 = '/^[T|t][D|d][Z|z]+[0-9]{8}?$/i';
@@ -34,6 +37,7 @@ class DeliverApiController extends AbstractController
                 return $this->json($output);
             } else {
                 $checkReceiverInfo = $repMerchantBilling->findOneBy(array('parcelRef' => $tracking));
+                $checkCodValue=$repMerchantDelivery->findOneBy(array('mailcode' => $tracking));
                 if ($checkReceiverInfo == null) {
                     $output = array('status' => 'ERROR_TRACKING_NOT_FOUND');
                 } else {
@@ -42,12 +46,12 @@ class DeliverApiController extends AbstractController
                         'orderAddress' => $checkReceiverInfo->getOrderaddr() . " ตำบล " . $checkReceiverInfo->getDistrict() . " อำเภอ " . $checkReceiverInfo->getAmphur() . " จังหวัด " . $checkReceiverInfo->getProvince() . " " . $checkReceiverInfo->getZipcode(),
                         'orderPhone' => $checkReceiverInfo->getOrderphoneno(),
                         'orderTransport' => $checkReceiverInfo->getOrdertransport(),
-                        'codValue' => ($checkReceiverInfo->getPaymentAmt() + $checkReceiverInfo->getTransportprice()) - $checkReceiverInfo->getPaymentDiscount()
+                        'codValue'=>intval($checkCodValue->getCodPrice())+intval($checkCodValue->getExpenseDiscount())
+//                        'codValue' => ($checkReceiverInfo->getPaymentAmt() + $checkReceiverInfo->getTransportprice()) - $checkReceiverInfo->getPaymentDiscount()
                     ];
                 }
             }
         }
-
         return $this->json($output);
     }
 
