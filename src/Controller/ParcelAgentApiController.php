@@ -387,21 +387,15 @@ class ParcelAgentApiController extends AbstractController
                             $newTrackingArr = str_split($tracking);
 
                             if ((count($newTrackingArr) == 11) && (!preg_match($patternTracking11, $tracking))) {
-                                file_put_contents('logtest.txt', date("Y-m-d H:i:s").' ERROR_TRACKING_WRONG_FORMAT_11', FILE_APPEND);
                                 $output = array('status' => 'ERROR_TRACKING_WRONG_FORMAT');
                                 return $this->json($output);
                             } elseif ((count($newTrackingArr) == 12) && (!preg_match($patternTracking12, $tracking))) {
-                                file_put_contents('logtest.txt', date("Y-m-d H:i:s").' ERROR_TRACKING_WRONG_FORMAT_12', FILE_APPEND);
-
                                 $output = array('status' => 'ERROR_TRACKING_WRONG_FORMAT');
                                 return $this->json($output);
                             } elseif (($itemTracking['transportType'] == 'cod') && ($itemTracking['codValue'] == 0)) {
-                                file_put_contents('logtest.txt', date("Y-m-d H:i:s").' ERROR_WRONG_COD_VALUE', FILE_APPEND);
-
                                 $output = array('status' => 'ERROR_WRONG_COD_VALUE');
                                 return $this->json($output);
                             } else {
-                                file_put_contents('logtest.txt', date("Y-m-d H:i:s").' Other 13', FILE_APPEND);
                                 $tracks[] = $itemTracking['tracking'];
                             }
                         }
@@ -410,17 +404,15 @@ class ParcelAgentApiController extends AbstractController
                             foreach ($tracks as $track) {
                                 $checkParcelRef = $repMerchantBilling->count(array('parcelRef' => $track));
                                 if ($checkParcelRef > 0) {
-                                    file_put_contents('logtest.txt', date("Y-m-d H:i:s").' check parcel ref > 0 '.$track, FILE_APPEND);
                                     $meet_require = false;
                                 }
                             }
                         } else {
-                            file_put_contents('logtest.txt', date("Y-m-d H:i:s").' no tracking to check ', FILE_APPEND);
                             $meet_require = false;
                         }
 
                         if ($meet_require == false) {
-                            file_put_contents('logtest.txt', date("Y-m-d H:i:s").' ERROR_DUPLICATE_TRACKING ', FILE_APPEND);
+//                            file_put_contents('logtest.txt', date("Y-m-d H:i:s").' ERROR_DUPLICATE_TRACKING ', FILE_APPEND);
                             $output = array('status' => 'ERROR_DUPLICATE_TRACKING');
                             return $this->json($output);
 
