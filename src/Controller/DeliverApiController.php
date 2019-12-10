@@ -36,19 +36,24 @@ class DeliverApiController extends AbstractController
                 $output = array('status' => 'ERROR_TRACKING_WRONG_FORMAT');
                 return $this->json($output);
             } else {
-                $checkReceiverInfo = $repMerchantBilling->findOneBy(array('parcelRef' => $tracking));
                 $checkCodValue=$repMerchantDelivery->findOneBy(array('mailcode' => $tracking));
-                if ($checkReceiverInfo == null) {
-                    $output = array('status' => 'ERROR_TRACKING_NOT_FOUND');
+                if ($checkCodValue == null) {
+                    $output = array('status' => 'ERROR_MAILCODE_NOT_FOUND');
                 } else {
-                    $output = [
-                        'orderName' => $checkReceiverInfo->getOrdername(),
-                        'orderAddress' => $checkReceiverInfo->getOrderaddr() . " ตำบล " . $checkReceiverInfo->getDistrict() . " อำเภอ " . $checkReceiverInfo->getAmphur() . " จังหวัด " . $checkReceiverInfo->getProvince() . " " . $checkReceiverInfo->getZipcode(),
-                        'orderPhone' => $checkReceiverInfo->getOrderphoneno(),
-                        'orderTransport' => $checkReceiverInfo->getOrdertransport(),
-                        'codValue'=>intval($checkCodValue->getCodPrice())+intval($checkCodValue->getExpenseDiscount())
+                    $checkReceiverInfo = $repMerchantBilling->findOneBy(array('takeorderby' => $checkCodValue->getTakeorderby(),'paymentInvoice'=>$checkCodValue->getPaymentInvoice()));
+                    if($checkReceiverInfo==null){
+                        $output = array('status' => 'ERROR_TRACKING_NOT_FOUND');
+                    } else{
+                        $output = [
+                            'orderName' => $checkReceiverInfo->getOrdername(),
+                            'orderAddress' => $checkReceiverInfo->getOrderaddr() . " ตำบล " . $checkReceiverInfo->getDistrict() . " อำเภอ " . $checkReceiverInfo->getAmphur() . " จังหวัด " . $checkReceiverInfo->getProvince() . " " . $checkReceiverInfo->getZipcode(),
+                            'orderPhone' => $checkReceiverInfo->getOrderphoneno(),
+                            'orderTransport' => $checkReceiverInfo->getOrdertransport(),
+                            'codValue'=>intval($checkCodValue->getCodPrice())+intval($checkCodValue->getExpenseDiscount())
 //                        'codValue' => ($checkReceiverInfo->getPaymentAmt() + $checkReceiverInfo->getTransportprice()) - $checkReceiverInfo->getPaymentDiscount()
-                    ];
+                        ];
+                    }
+
                 }
             }
         }
