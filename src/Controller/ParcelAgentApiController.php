@@ -362,24 +362,24 @@ class ParcelAgentApiController extends AbstractController
         $tracks = [];
         $output = [];
         if($data['username'] =='' || $data['agentUserId']=='' || $data['agentMerId']=='' || $data['senderMemberId']=='' || $data['senderMerId']==''){
-            file_put_contents('../public/logtest.txt', date("Y-m-d H:i:s").' ERROR_DATA_NOT_COMPLETE ', FILE_APPEND);
+            file_put_contents('../log/logtest.txt', date("Y-m-d H:i:s").' ERROR_DATA_NOT_COMPLETE ', FILE_APPEND);
             $output = array('status' => "ERROR_DATA_NOT_COMPLETE");
             return $this->json($output);
         }else {
             $checkMerchantActive=$repMerchantConfig->findOneBy(['takeorderby'=>$data['agentMerId'],'status'=>'active']);
             if($checkMerchantActive== null ){
-                file_put_contents('../public/logtest.txt', date("Y-m-d H:i:s").' ERROR_MER_ID_NOT_ACTIVE ', FILE_APPEND);
+                file_put_contents('../log/logtest.txt', date("Y-m-d H:i:s").' ERROR_MER_ID_NOT_ACTIVE ', FILE_APPEND);
                 $output = array('status' => 'ERROR_MER_ID_NOT_ACTIVE');
                 return $this->json($output);
             } else {
                 if ($data['agentMerId'] != $data['senderMerId']) {
-                    file_put_contents('../public/logtest.txt', date("Y-m-d H:i:s").' ERROR_MER_ID_NOT_MATCH ', FILE_APPEND);
+                    file_put_contents('../log/logtest.txt', date("Y-m-d H:i:s").' ERROR_MER_ID_NOT_MATCH ', FILE_APPEND);
                     $output = array('status' => 'ERROR_MER_ID_NOT_MATCH');
                     return $this->json($output);
                 } else {
                     $meet_require = true;
                     if (count($data['trackingList']) <= 0) {
-                        file_put_contents('../public/logtest.txt', date("Y-m-d H:i:s").' ERROR_NO_TRACKING_LIST ', FILE_APPEND);
+                        file_put_contents('../log/logtest.txt', date("Y-m-d H:i:s").' ERROR_NO_TRACKING_LIST ', FILE_APPEND);
                         $output = array('status' => "ERROR_NO_TRACKING_LIST");
                         return $this->json($output);
                     } else {
@@ -391,15 +391,15 @@ class ParcelAgentApiController extends AbstractController
                             $newTrackingArr = str_split($tracking);
 
                             if ((count($newTrackingArr) == 11) && (!preg_match($patternTracking11, $tracking))) {
-                                file_put_contents('../public/logtest.txt', date("Y-m-d H:i:s").' ERROR_TRACKING_WRONG_FORMAT ', FILE_APPEND);
+                                file_put_contents('../log/logtest.txt', date("Y-m-d H:i:s").' ERROR_TRACKING_WRONG_FORMAT ', FILE_APPEND);
                                 $output = array('status' => 'ERROR_TRACKING_WRONG_FORMAT');
                                 return $this->json($output);
                             } elseif ((count($newTrackingArr) == 12) && (!preg_match($patternTracking12, $tracking))) {
-                                file_put_contents('../public/logtest.txt', date("Y-m-d H:i:s").' ERROR_TRACKING_WRONG_FORMAT ', FILE_APPEND);
+                                file_put_contents('../log/logtest.txt', date("Y-m-d H:i:s").' ERROR_TRACKING_WRONG_FORMAT ', FILE_APPEND);
                                 $output = array('status' => 'ERROR_TRACKING_WRONG_FORMAT');
                                 return $this->json($output);
                             } elseif (($itemTracking['transportType'] == 'cod') && ($itemTracking['codValue'] == 0)) {
-                                file_put_contents('../public/logtest.txt', date("Y-m-d H:i:s").' ERROR_WRONG_COD_VALUE ', FILE_APPEND);
+                                file_put_contents('../log/logtest.txt', date("Y-m-d H:i:s").' ERROR_WRONG_COD_VALUE ', FILE_APPEND);
                                 $output = array('status' => 'ERROR_WRONG_COD_VALUE');
                                 return $this->json($output);
                             } else {
@@ -419,7 +419,7 @@ class ParcelAgentApiController extends AbstractController
                         }
 
                         if ($meet_require == false) {
-                            file_put_contents('../public/logtest.txt', date("Y-m-d H:i:s").' ERROR_DUPLICATE_TRACKING ', FILE_APPEND);
+                            file_put_contents('../log/logtest.txt', date("Y-m-d H:i:s").' ERROR_DUPLICATE_TRACKING ', FILE_APPEND);
                             $output = array('status' => 'ERROR_DUPLICATE_TRACKING');
                             return $this->json($output);
 
