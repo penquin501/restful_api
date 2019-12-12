@@ -338,6 +338,28 @@ class ParcelAgentApiController extends AbstractController
     }
 
     ////////////////////////////////////////////////////Quick Link Part/////////////////////////////////////////////////
+    /**
+     * @Route("/parcel/agent/generate/bill/no/api", methods={"POST"})
+     */
+    public function parcelAgentGenerateBillNo(Request $request) {
+        date_default_timezone_set("Asia/Bangkok");
+        $data = json_decode($request->getContent(), true);
+        if($data['agentMerId'] == '' || $data['agentUserId']==''){
+            file_put_contents('/usr/share/nginx/html/restful_api/public/log/logBillno.txt', date("Y-m-d H:i:s").' ERROR_DATA_NOT_COMPLETE ', FILE_APPEND);
+            $output=[
+                'status'=>'ERROR_DATA_NOT_COMPLETE'
+            ];
+        } else {
+            $parcelBillNo = $data['agentMerId'] . '-' . $data['agentUserId'] . '-' . date("ymdHis") . '-' . rand(111, 999);
+            file_put_contents('/usr/share/nginx/html/restful_api/public/log/logBillno.txt', date("Y-m-d H:i:s").' '.$parcelBillNo.' ', FILE_APPEND);
+            $output=[
+                'status'=>'SUCCESS',
+                'parcelBillNo'=>$parcelBillNo
+            ];
+        }
+
+        return $this->json($output);
+    }
 
     /**
      * @Route("/parcel/agent/quicklink/api", methods={"POST"})
@@ -425,7 +447,8 @@ class ParcelAgentApiController extends AbstractController
 
                         } else {
                             ///////////////////////////////////////////GEN PARCEL BILL NO///////////////////////////////////////////////
-                            $parcelBillNo = $data['agentMerId'] . '-' . $data['agentUserId'] . '-' . date("ymdHis") . '-' . rand(111, 999);
+//                            $parcelBillNo = $data['agentMerId'] . '-' . $data['agentUserId'] . '-' . date("ymdHis") . '-' . rand(111, 999);
+                            $parcelBillNo=$data['parcelBillNo'];
                             ////////////////////////////////////////////////////////////////////////////////////////////////////////////
                             foreach ($data['trackingList'] as $item) {
                                 //////////////////////////////////////GEN TRANSPORT PRICE///////////////////////////////////////////////
@@ -495,7 +518,7 @@ class ParcelAgentApiController extends AbstractController
                                     $paymentInvoice = $prefix[0]->getInvPrefix() . date("ymd") . $padMaxId;
                                     ///////////////////////////////GEN RECORD ID////////////////////////////////////////////////////
                                     $mtime = str_replace(".", "", microtime(true));
-//            $keystring = _generateRandomString();
+                                    // $keystring = _generateRandomString();
                                     $keystring = random_bytes(10);
                                     $keystring = sha1($keystring . uniqid(true) . md5(date("ymdHisU"))) . rand(111, 999) . $mtime;
                                     $keystring = date("YmdHis") . $keystring . $data['agentMerId'] . $data['agentUserId'];
@@ -598,7 +621,7 @@ class ParcelAgentApiController extends AbstractController
                                     $merchantBillingDelivery->setCodPrice($item['codValue']);
                                     $merchantBillingDelivery->setExpenseDiscount(0);
                                     $merchantBillingDelivery->setGlobalWarehouse($globalWarehouse[0]->getWarehouseTier());
-//                                    $merchantBillingDelivery->setWarehouseId($globalProduct[0]->getWarehouse());
+                                    // $merchantBillingDelivery->setWarehouseId($globalProduct[0]->getWarehouse());
                                     $merchantBillingDelivery->setWarehouseId(0);
                                     $merchantBillingDelivery->setMailcode($item['tracking']);
                                     $merchantBillingDelivery->setTransporterId(0);
