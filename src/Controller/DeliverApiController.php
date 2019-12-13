@@ -128,43 +128,66 @@ class DeliverApiController extends AbstractController
         date_default_timezone_set("Asia/Bangkok");
 
         $output = [];
+        $tracks = [];
         $patternTracking11 = '/^[T|t][D|d][Z|z]+[0-9]{8}?$/i';
         $patternTracking12 = '/^[T|t][D|d][Z|z]+[0-9]{8}[A-Z]?$/i';
         $patternUrl='%^(?:(?:https?|ftp)://)(?:\S+(?::\S*)?@|\d{1,3}(?:\.\d{1,3}){3}|(?:(?:[a-z\d\x{00a1}-\x{ffff}]+-?)*[a-z\d\x{00a1}-\x{ffff}]+)(?:\.(?:[a-z\d\x{00a1}-\x{ffff}]+-?)*[a-z\d\x{00a1}-\x{ffff}]+)*(?:\.[a-z\x{00a1}-\x{ffff}]{2,6}))(?::\d+)?(?:[^\s]*)?$%iu';
 
         $data = json_decode($request->getContent(), true);
 
-        if ($data['trackingNo'] == '' || $data['merId'] == '' || $data['userId'] == '' || $data['transporter'] == '' || $data['operator'] == '' || $data['signature'] == '' || $data['trackingTimestamp'] == '' || $data['location']=='') {
+        if ($data['merId'] == '' || $data['userId'] == '' || $data['transporter'] == '' || $data['operator'] == '' || $data['signature'] == '' || $data['trackingTimestamp'] == '' || $data['location']=='') {
             $output = ["status" => "ERROR_DATA_NOT_COMPLETE"];
             return $this->json($output);
-        } else if(!preg_match($patternUrl, $data['signature'])){
+        } else if(!preg_match($patternUrl, $data['signature'])) {
             $output = ["status" => "ERROR_NO_SIGNATURE_LINK"];
             return $this->json($output);
+        } else if(count($data['trackingList'])<=0){
+            $output = ["status" => "ERROR_NO_TRACKING_LIST"];
+            return $this->json($output);
         } else {
-            $tracking = trim($data['trackingNo']);
-            $newTrackingArr = str_split($tracking);
-            if ((count($newTrackingArr) == 11) && (!preg_match($patternTracking11, $tracking))) {
-                $output = array('status' => 'ERROR_TRACKING_WRONG_FORMAT');
-                return $this->json($output);
-            } elseif ((count($newTrackingArr) == 12) && (!preg_match($patternTracking12, $tracking))) {
-                $output = array('status' => 'ERROR_TRACKING_WRONG_FORMAT');
+
+            foreach($data['trackingList'] as $tracking){
+                $trackingStr = trim($tracking['tracking']);
+                $newTrackingArr = str_split($trackingStr);
+                if ((count($newTrackingArr) == 11) && (!preg_match($patternTracking11, $trackingStr))) {
+                    $output = array('status' => 'ERROR_TRACKING_WRONG_FORMAT');
+                    return $this->json($output);
+                } elseif ((count($newTrackingArr) == 12) && (!preg_match($patternTracking12, $trackingStr))) {
+                    $output = array('status' => 'ERROR_TRACKING_WRONG_FORMAT');
+                    return $this->json($output);
+                } else {
+                    $tracks[] = $tracking['tracking'];
+                }
+            }
+
+            $meet_require = true;
+            if (count($tracks) > 0) {
+                foreach ($tracks as $track) {
+                    $checkBillingInfo = $repMerchantBilling->findOneBy(array('parcelRef' => $track));
+                    if ($checkBillingInfo==null) {
+                        $meet_require = false;
+                    }
+                }
+            } else {
+                $meet_require = false;
+            }
+
+            if($meet_require==false) {
+                $output = ["status" => "ERROR_NO_DATA_BILLING"];
                 return $this->json($output);
             } else {
-                $checkReceiverInfo = $repMerchantBilling->findOneBy(array('parcelRef' => $tracking));
-                if($checkReceiverInfo==null){
-                    $output = ["status" => "ERROR_NO_DATA_BILLING"];
-                } else {
-                    $trackingDateStamp=date("Y-m-d", strtotime($data['trackingTimestamp']));
-                    $randomStr=$this->generateId($data['transporter'],$data['trackingNo'],$data['licensePlate'],$data['operator'],$em);
+                $trackingDateStamp=date("Y-m-d", strtotime($data['trackingTimestamp']));
 
-                    $exLocation=(explode(",",$data['location']));
-                    $lat=$exLocation[0];//latitude
-                    $lng=$exLocation[1];//longitude
+                $exLocation=(explode(",",$data['location']));
+                $lat=$exLocation[0];//latitude
+                $lng=$exLocation[1];//longitude
+
+                foreach($data['trackingList'] as $item){
+                    $randomStr=$this->generateId($data['transporter'],$item['tracking'],$data['licensePlate'],$data['operator'],$em);
 
                     $newCounterData="INSERT INTO counter_data(id,mer_id,user_id,tracking_no,transporter,license_plate,operator,signature,scan_date,scan_time,location_lat,location_lng,tracking_datestamp,tracking_timestamp) ".
-                        "VALUES ('".$randomStr."','".$data['merId']."','".$data['userId']."','".$data['trackingNo']."','".$data['transporter']."','".$data['licensePlate']."','".$data['operator']."','".$data['signature']."',null,null,'".$lat."','".$lng."','".$trackingDateStamp."','".$data['trackingTimestamp']."')";
+                        "VALUES ('".$randomStr."','".$data['merId']."','".$data['userId']."','".$item['tracking']."','".$data['transporter']."','".$data['licensePlate']."','".$data['operator']."','".$data['signature']."',null,null,'".$lat."','".$lng."','".$trackingDateStamp."','".$data['trackingTimestamp']."')";
                     $em->getConnection()->query($newCounterData);
-
                     $output = ["status" => "SUCCESS"];
                 }
             }
