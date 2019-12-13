@@ -134,8 +134,7 @@ class DeliverApiController extends AbstractController
 
         $data = json_decode($request->getContent(), true);
 
-        if ($data['trackingNo'] == '' || $data['merId'] == '' || $data['userId'] == '' || $data['transporter'] == '' ||
-            $data['licensePlate'] == '' || $data['operator'] == '' || $data['signature'] == '' || $data['trackingTimestamp'] == '' || $data['location']=='') {
+        if ($data['trackingNo'] == '' || $data['merId'] == '' || $data['userId'] == '' || $data['transporter'] == '' || $data['operator'] == '' || $data['signature'] == '' || $data['trackingTimestamp'] == '' || $data['location']=='') {
             $output = ["status" => "ERROR_DATA_NOT_COMPLETE"];
             return $this->json($output);
         } else if(!preg_match($patternUrl, $data['signature'])){
