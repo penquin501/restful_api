@@ -135,7 +135,7 @@ class DeliverApiController extends AbstractController
         $data = json_decode($request->getContent(), true);
 
         if ($data['trackingNo'] == '' || $data['merId'] == '' || $data['userId'] == '' || $data['transporter'] == '' ||
-            $data['licensePlate'] == '' || $data['operator'] == '' || $data['signature'] == '' || $data['trackingTimestamp'] == '') {
+            $data['licensePlate'] == '' || $data['operator'] == '' || $data['signature'] == '' || $data['trackingTimestamp'] == '' || $data['location']=='') {
             $output = ["status" => "ERROR_DATA_NOT_COMPLETE"];
             return $this->json($output);
         } else if(!preg_match($patternUrl, $data['signature'])){
@@ -158,8 +158,12 @@ class DeliverApiController extends AbstractController
                     $trackingDateStamp=date("Y-m-d", strtotime($data['trackingTimestamp']));
                     $randomStr=$this->generateId($data['transporter'],$data['trackingNo'],$data['licensePlate'],$data['operator'],$em);
 
-                    $newCounterData="INSERT INTO counter_data(id, mer_id, user_id, tracking_no, transporter, license_plate, operator, signature, scan_date, scan_time, tracking_datestamp, tracking_timestamp) ".
-                        "VALUES ('".$randomStr."','".$data['merId']."','".$data['userId']."','".$data['trackingNo']."','".$data['transporter']."','".$data['licensePlate']."','".$data['operator']."','".$data['signature']."',null,null,'".$trackingDateStamp."','".$data['trackingTimestamp']."')";
+                    $exLocation=(explode(",",$data['location']));
+                    $lat=$exLocation[0];//latitude
+                    $lng=$exLocation[1];//longitude
+
+                    $newCounterData="INSERT INTO counter_data(id,mer_id,user_id,tracking_no,transporter,license_plate,operator,signature,scan_date,scan_time,location_lat,location_lng,tracking_datestamp,tracking_timestamp) ".
+                        "VALUES ('".$randomStr."','".$data['merId']."','".$data['userId']."','".$data['trackingNo']."','".$data['transporter']."','".$data['licensePlate']."','".$data['operator']."','".$data['signature']."',null,null,'".$lat."','".$lng."','".$trackingDateStamp."','".$data['trackingTimestamp']."')";
                     $em->getConnection()->query($newCounterData);
 
                     $output = ["status" => "SUCCESS"];
