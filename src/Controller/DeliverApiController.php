@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Entity\LogMerchantChangestatus;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Routing\Annotation\Route;
@@ -49,8 +50,8 @@ class DeliverApiController extends AbstractController
                             'orderAddress' => $checkReceiverInfo->getOrderaddr() . " ตำบล " . $checkReceiverInfo->getDistrict() . " อำเภอ " . $checkReceiverInfo->getAmphur() . " จังหวัด " . $checkReceiverInfo->getProvince() . " " . $checkReceiverInfo->getZipcode(),
                             'orderPhone' => $checkReceiverInfo->getOrderphoneno(),
                             'orderTransport' => $checkReceiverInfo->getOrdertransport(),
-                            'codValue'=>intval($checkCodValue->getCodPrice())+intval($checkCodValue->getExpenseDiscount())
-//                        'codValue' => ($checkReceiverInfo->getPaymentAmt() + $checkReceiverInfo->getTransportprice()) - $checkReceiverInfo->getPaymentDiscount()
+                            'codValue'=>intval($checkCodValue->getCodPrice())+intval($checkCodValue->getExpenseDiscount()),
+                            'orderStatus' => $checkReceiverInfo->getOrderstatus()
                         ];
                     }
 
@@ -123,7 +124,8 @@ class DeliverApiController extends AbstractController
      */
     public function saveCounterData(Request $request,
                                     EntityManagerInterface $em,
-                                    MerchantBillingRepository $repMerchantBilling
+                                    MerchantBillingRepository $repMerchantBilling,
+                                    MerchantBillingDeliveryRepository $repMerchantBillingDelivery
     ) {
         date_default_timezone_set("Asia/Bangkok");
 
@@ -185,11 +187,41 @@ class DeliverApiController extends AbstractController
                 foreach($data['trackingList'] as $item){
                     $randomStr=$this->generateId($data['transporter'],$item['tracking'],$data['licensePlate'],$data['operator'],$em);
 
-                    $newCounterData="INSERT INTO counter_data(id,mer_id,user_id,tracking_no,transporter,license_plate,operator,signature,scan_date,scan_time,location_lat,location_lng,tracking_datestamp,tracking_timestamp) ".
-                        "VALUES ('".$randomStr."','".$data['merId']."','".$data['userId']."','".$item['tracking']."','".$data['transporter']."','".$data['licensePlate']."','".$data['operator']."','".$data['signature']."',null,null,'".$lat."','".$lng."','".$trackingDateStamp."','".$data['trackingTimestamp']."')";
-                    $em->getConnection()->query($newCounterData);
-                    $output = ["status" => "SUCCESS"];
+//                    $newCounterData="INSERT INTO counter_data(id,mer_id,user_id,tracking_no,transporter,license_plate,operator,signature,scan_date,scan_time,location_lat,location_lng,tracking_datestamp,tracking_timestamp) ".
+//                        "VALUES ('".$randomStr."','".$data['merId']."','".$data['userId']."','".$item['tracking']."','".$data['transporter']."','".$data['licensePlate']."','".$data['operator']."','".$data['signature']."',null,null,'".$lat."','".$lng."','".$trackingDateStamp."','".$data['trackingTimestamp']."')";
+//                    $em->getConnection()->query($newCounterData);
+                    
+                    $checkBillingPaymentMethod = $repMerchantBilling->findOneBy(array('parcelRef' => $item['tracking']));
+                    if($checkBillingPaymentMethod->getPaymentMethod()=='60'){
+                        $checkBillingPaymentMethod->setPaymentStatus('00');
+                        $checkBillingPaymentMethod->setPaymentdate(new \DateTime($data['trackingTimestamp'], new \DateTimeZone('Asia/Bangkok')));
+                        $checkBillingPaymentMethod->setOrderstatusDatetime(new \DateTime($data['trackingTimestamp'], new \DateTimeZone('Asia/Bangkok')));
+                        $checkBillingPaymentMethod->setOrderstatus('105');
+                    } else {
+                        $checkBillingPaymentMethod->setOrderstatusDatetime(new \DateTime($data['trackingTimestamp'], new \DateTimeZone('Asia/Bangkok')));
+                        $checkBillingPaymentMethod->setOrderstatus('105');
+                    }
+                    $checkBillingDeliveryInfo = $repMerchantBillingDelivery->findOneBy(array('mailcode' => $item['tracking']));
+                    $checkBillingDeliveryInfo->setTransporterId(100);
+                    $checkBillingDeliveryInfo->setTranstatus('S');
+                    $checkBillingDeliveryInfo->setTransactiondate(new \DateTime($data['trackingTimestamp'], new \DateTimeZone('Asia/Bangkok')));
+                    $checkBillingDeliveryInfo->setRemark('Updated By Lalarun');
+
+                    $logMerchantStatus=new LogMerchantChangestatus();
+                    $logMerchantStatus->setTakeorderby($data['merId']);
+                    $logMerchantStatus->setUsersign($data['userId']);
+                    $logMerchantStatus->setPaymentInvoice($checkBillingPaymentMethod->getPaymentInvoice());
+                    $logMerchantStatus->setPreviousorderstatus($checkBillingPaymentMethod->getOrderstatus());
+                    $logMerchantStatus->setCurrentorderstatus('105');
+                    $logMerchantStatus->setTimetochange(new \DateTime("now", new \DateTimeZone('Asia/Bangkok')));
+                    $logMerchantStatus->setChangefrommodule('Updated By Lalarun');
+
+                    $em->persist($checkBillingPaymentMethod);
+                    $em->persist($checkBillingDeliveryInfo);
+                    $em->persist($logMerchantStatus);
+                    $em->flush();
                 }
+                $output = ["status" => "SUCCESS"];
             }
         }
         return $this->json($output);
