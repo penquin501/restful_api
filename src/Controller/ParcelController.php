@@ -54,14 +54,14 @@ class ParcelController extends AbstractController
 
         $resultIdCardCheck=$this->validatePID($data['member_code']);
 
-        if(count($splMemberCode)==13 && $resultIdCardCheck==true) {
-            $sql.="citizenid ='" . $memberCode."'";
-        } elseif(count($splMemberCode)==11 && preg_match($patternPhone,$memberCode)) {
-            $sql.="phoneregis ='" . $memberCode."'";
-        } else {
+//        if(count($splMemberCode)==13 && $resultIdCardCheck==true) {
+//            $sql.="citizenid ='" . $memberCode."'";
+//        } elseif(count($splMemberCode)==11 && preg_match($patternPhone,$memberCode)) {
+//            $sql.="phoneregis ='" . $memberCode."'";
+//        } else {
             $sql.="member_id ='" . $memberCode."'";
-        }
-
+//        }
+//dd($sql);
         $selectMemberInfo = $entityManager->getConnection()->query($sql);
         $memberInfo = json_decode($this->json($selectMemberInfo)->getContent(), true);
 
