@@ -53,66 +53,55 @@ class ParcelController extends AbstractController
 
         $resultIdCardCheck=$this->validatePID($data['member_code']);
 
-        if(count($splMemberCode)==13 && $resultIdCardCheck==true) {
-            $sqlCheckCitizenId = "SELECT member_id as member_code, merid as branch_id,firstname as first_name, lastname as last_name,phoneregis as phone, ref_address as address, bankacc as bank_account_no,bank_acc_name,bank_issue as bank_name " .
-                "FROM parcel_member WHERE merid=" . $data['merId'] . " AND citizenid ='" . $memberCode . "'";
-            $queryCheckCitizenId = $em->getConnection()->query($sqlCheckCitizenId);
-            $memberInfoByCitizenId = json_decode($this->json($queryCheckCitizenId)->getContent(), true);
+        $sql = "SELECT member_id as member_code, merid as branch_id,firstname as first_name, lastname as last_name,phoneregis as phone, ref_address as address, bankacc as bank_account_no,bank_acc_name,bank_issue as bank_name ".
+            "FROM parcel_member WHERE merid=".$data['merId']." AND ";
 
-            if($memberInfoByCitizenId==null) {
-                $sqlCheckPhone= "SELECT member_id as member_code, merid as branch_id,firstname as first_name, lastname as last_name,phoneregis as phone, ref_address as address, bankacc as bank_account_no,bank_acc_name,bank_issue as bank_name " .
-                    "FROM parcel_member WHERE merid=" . $data['merId'] . " AND phoneregis ='" . $memberCode . "'";
-                $queryCheckPhoneregis = $em->getConnection()->query($sqlCheckPhone);
-                $memberInfoByPhoneregis = json_decode($this->json($queryCheckPhoneregis)->getContent(), true);
+        if(count($splMemberCode)==13 && $resultIdCardCheck==true){
+            $sql.="citizenid ='" . $memberCode."'";
+        } else if (count($splMemberCode)==11 && preg_match($patternPhone,$memberCode)){
+            $sql.="phoneregis ='" . $memberCode."'";
+        } else {
+            $sql.="member_id ='" . $memberCode."'";
+        }
 
-                if($memberInfoByPhoneregis==null){
-                    $sqlCheckMemberId = "SELECT member_id as member_code, merid as branch_id,firstname as first_name, lastname as last_name,phoneregis as phone, ref_address as address, bankacc as bank_account_no,bank_acc_name,bank_issue as bank_name " .
-                        "FROM parcel_member WHERE merid=" . $data['merId'] . " AND member_id ='" . $memberCode . "'";
-                    $queryCheckMemberId = $em->getConnection()->query($sqlCheckMemberId);
-                    $memberInfoByMemberId = json_decode($this->json($queryCheckMemberId)->getContent(), true);
-                    if($memberInfoByMemberId==null){
-                        $output=['status'=>'ERROR_NOT_FOUND'];
-                    } else {
-                        $output = ['status' => 'SUCCESS',
-                            'member_code' => $memberInfoByMemberId[0]['member_code'],
-                            'branch_id' => $memberInfoByMemberId[0]['branch_id'],
-                            'first_name' => $memberInfoByMemberId[0]['first_name'],
-                            'last_name' => $memberInfoByMemberId[0]['last_name'],
-                            'phone' => $memberInfoByMemberId[0]['phone'],
-                            'address' => $memberInfoByMemberId[0]['address'],
-                            'bank_account_no' => $memberInfoByMemberId[0]['bank_account_no'],
-                            'bank_acc_name' => $memberInfoByMemberId[0]['bank_acc_name'],
-                            'bank_name' => $memberInfoByMemberId[0]['bank_name']
-                        ];
-                    }
-                } else {
-                    $output = ['status' => 'SUCCESS',
-                        'member_code' => $memberInfoByPhoneregis[0]['member_code'],
-                        'branch_id' => $memberInfoByPhoneregis[0]['branch_id'],
-                        'first_name' => $memberInfoByPhoneregis[0]['first_name'],
-                        'last_name' => $memberInfoByPhoneregis[0]['last_name'],
-                        'phone' => $memberInfoByPhoneregis[0]['phone'],
-                        'address' => $memberInfoByPhoneregis[0]['address'],
-                        'bank_account_no' => $memberInfoByPhoneregis[0]['bank_account_no'],
-                        'bank_acc_name' => $memberInfoByPhoneregis[0]['bank_acc_name'],
-                        'bank_name' => $memberInfoByPhoneregis[0]['bank_name']
-                    ];
-                }
+        $selectMemberInfo = $em->getConnection()->query($sql);
+        $memberInfo = json_decode($this->json($selectMemberInfo)->getContent(), true);
+
+        if(count($splMemberCode)==13 && $resultIdCardCheck==true && $memberInfo==null) {
+            $sql = "SELECT member_id as member_code, merid as branch_id,firstname as first_name, lastname as last_name,phoneregis as phone, ref_address as address, bankacc as bank_account_no,bank_acc_name,bank_issue as bank_name ".
+                "FROM parcel_member WHERE merid=".$data['merId']." AND member_id ='" .$memberCode."'";
+            $queryMemberInfo = $em->getConnection()->query($sql);
+            $resultMemberInfo = json_decode($this->json($queryMemberInfo)->getContent(), true);
+            if($resultMemberInfo==null){
+                $output=['status'=>'ERROR_NOT_FOUND'];
             } else {
                 $output = ['status' => 'SUCCESS',
-                    'member_code' => $memberInfoByCitizenId[0]['member_code'],
-                    'branch_id' => $memberInfoByCitizenId[0]['branch_id'],
-                    'first_name' => $memberInfoByCitizenId[0]['first_name'],
-                    'last_name' => $memberInfoByCitizenId[0]['last_name'],
-                    'phone' => $memberInfoByCitizenId[0]['phone'],
-                    'address' => $memberInfoByCitizenId[0]['address'],
-                    'bank_account_no' => $memberInfoByCitizenId[0]['bank_account_no'],
-                    'bank_acc_name' => $memberInfoByCitizenId[0]['bank_acc_name'],
-                    'bank_name' => $memberInfoByCitizenId[0]['bank_name']
+                    'member_code' => $resultMemberInfo[0]['member_code'],
+                    'branch_id' => $resultMemberInfo[0]['branch_id'],
+                    'first_name' => $resultMemberInfo[0]['first_name'],
+                    'last_name' => $resultMemberInfo[0]['last_name'],
+                    'phone' => $resultMemberInfo[0]['phone'],
+                    'address' => $resultMemberInfo[0]['address'],
+                    'bank_account_no' => $resultMemberInfo[0]['bank_account_no'],
+                    'bank_acc_name' => $resultMemberInfo[0]['bank_acc_name'],
+                    'bank_name' => $resultMemberInfo[0]['bank_name']
                 ];
             }
+        } else if($memberInfo==null){
+            $output=['status'=>'ERROR_NOT_FOUND'];
+        } else {
+            $output = ['status' => 'SUCCESS',
+                'member_code' => $memberInfo[0]['member_code'],
+                'branch_id' => $memberInfo[0]['branch_id'],
+                'first_name' => $memberInfo[0]['first_name'],
+                'last_name' => $memberInfo[0]['last_name'],
+                'phone' => $memberInfo[0]['phone'],
+                'address' => $memberInfo[0]['address'],
+                'bank_account_no' => $memberInfo[0]['bank_account_no'],
+                'bank_acc_name' => $memberInfo[0]['bank_acc_name'],
+                'bank_name' => $memberInfo[0]['bank_name']
+            ];
         }
-        
         return $this->json($output);
     }
     /**
