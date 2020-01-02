@@ -310,19 +310,22 @@ class ParcelAgentApiController extends AbstractController
      */
     public
     function selectZipcodeThailand(Request $request,
-                                   PostinfoZipcodesRepository $repZipcode
+                                   PostinfoZipcodesRepository $repZipcode,
+                                   EntityManagerInterface $em
     )
     {
         $zipcode = $request->query->get('zipcode');
+        $conn = $em->getConnection();
 
-        $entityManager = $this->getDoctrine()->getManager();
         $sql = "SELECT z.zipcode,d.DISTRICT_ID,d.DISTRICT_CODE,d.DISTRICT_NAME,d.AMPHUR_ID,a.AMPHUR_NAME,d.PROVINCE_ID,p.PROVINCE_NAME " .
             "FROM postinfo_zipcodes z " .
             "JOIN postinfo_district d ON z.district_code=d.DISTRICT_CODE " .
             "JOIN postinfo_amphur a ON d.AMPHUR_ID=a.AMPHUR_ID " .
             "JOIN postinfo_province p ON d.PROVINCE_ID=p.PROVINCE_ID " .
-            "WHERE z.zipcode='" . $zipcode . "'";
-        $thailandInfo = $entityManager->getConnection()->query($sql);
+            "WHERE z.zipcode=:zipcode";
+
+        $thailandInfo = $conn->prepare($sql);
+        $thailandInfo->execute(array('zipcode' => $zipcode));
 
         return $this->json($thailandInfo);
     }
@@ -378,30 +381,34 @@ class ParcelAgentApiController extends AbstractController
     )
     {
         date_default_timezone_set("Asia/Bangkok");
-        $data = json_decode($request->getContent(), true);
+        $dataRequest = json_decode($request->getContent(), true);
+        $data=$dataRequest[0];
+
         $dateToday = date("Y-m-d H:i:s", strtotime("now"));
         $dateExpire = date("Y-m-d H:i:s", strtotime("now" . "+3 Days"));
+
         $tracks = [];
         $output = [];
-        if($data['username'] =='' || $data['agentUserId']=='' || $data['agentMerId']=='' || $data['senderMemberId']=='' || $data['senderMerId']==''){
-            file_put_contents('/usr/share/nginx/html/restful_api/public/log/logtest.txt', date("Y-m-d H:i:s").' ERROR_DATA_NOT_COMPLETE ', FILE_APPEND);
+
+        if($data['owner'] =='' || $data['user_id']=='' || $data['agentMerId']=='' || $data['senderMemberId']=='' || $data['senderMerId']==''){
+//            file_put_contents('/usr/share/nginx/html/restful_api/public/log/logtest.txt', date("Y-m-d H:i:s").' ERROR_DATA_NOT_COMPLETE ', FILE_APPEND);
             $output = array('status' => "ERROR_DATA_NOT_COMPLETE");
             return $this->json($output);
         }else {
             $checkMerchantActive=$repMerchantConfig->findOneBy(['takeorderby'=>$data['agentMerId'],'status'=>'active']);
             if($checkMerchantActive== null ){
-                file_put_contents('/usr/share/nginx/html/restful_api/public/log/logtest.txt', date("Y-m-d H:i:s").' ERROR_MER_ID_NOT_ACTIVE ', FILE_APPEND);
+//                file_put_contents('/usr/share/nginx/html/restful_api/public/log/logtest.txt', date("Y-m-d H:i:s").' ERROR_MER_ID_NOT_ACTIVE ', FILE_APPEND);
                 $output = array('status' => 'ERROR_MER_ID_NOT_ACTIVE');
                 return $this->json($output);
             } else {
                 if ($data['agentMerId'] != $data['senderMerId']) {
-                    file_put_contents('/usr/share/nginx/html/restful_api/public/log/logtest.txt', date("Y-m-d H:i:s").' ERROR_MER_ID_NOT_MATCH ', FILE_APPEND);
+//                    file_put_contents('/usr/share/nginx/html/restful_api/public/log/logtest.txt', date("Y-m-d H:i:s").' ERROR_MER_ID_NOT_MATCH ', FILE_APPEND);
                     $output = array('status' => 'ERROR_MER_ID_NOT_MATCH');
                     return $this->json($output);
                 } else {
                     $meet_require = true;
                     if (count($data['trackingList']) <= 0) {
-                        file_put_contents('/usr/share/nginx/html/restful_api/public/log/logtest.txt', date("Y-m-d H:i:s").' ERROR_NO_TRACKING_LIST ', FILE_APPEND);
+//                        file_put_contents('/usr/share/nginx/html/restful_api/public/log/logtest.txt', date("Y-m-d H:i:s").' ERROR_NO_TRACKING_LIST ', FILE_APPEND);
                         $output = array('status' => "ERROR_NO_TRACKING_LIST");
                         return $this->json($output);
                     } else {
@@ -413,15 +420,15 @@ class ParcelAgentApiController extends AbstractController
                             $newTrackingArr = str_split($tracking);
 
                             if ((count($newTrackingArr) == 11) && (!preg_match($patternTracking11, $tracking))) {
-                                file_put_contents('/usr/share/nginx/html/restful_api/public/log/logtest.txt', date("Y-m-d H:i:s").' ERROR_TRACKING_WRONG_FORMAT ', FILE_APPEND);
+//                                file_put_contents('/usr/share/nginx/html/restful_api/public/log/logtest.txt', date("Y-m-d H:i:s").' ERROR_TRACKING_WRONG_FORMAT ', FILE_APPEND);
                                 $output = array('status' => 'ERROR_TRACKING_WRONG_FORMAT');
                                 return $this->json($output);
                             } elseif ((count($newTrackingArr) == 12) && (!preg_match($patternTracking12, $tracking))) {
-                                file_put_contents('/usr/share/nginx/html/restful_api/public/log/logtest.txt', date("Y-m-d H:i:s").' ERROR_TRACKING_WRONG_FORMAT ', FILE_APPEND);
+//                                file_put_contents('/usr/share/nginx/html/restful_api/public/log/logtest.txt', date("Y-m-d H:i:s").' ERROR_TRACKING_WRONG_FORMAT ', FILE_APPEND);
                                 $output = array('status' => 'ERROR_TRACKING_WRONG_FORMAT');
                                 return $this->json($output);
                             } elseif (($itemTracking['transportType'] == 'cod') && ($itemTracking['codValue'] == 0)) {
-                                file_put_contents('/usr/share/nginx/html/restful_api/public/log/logtest.txt', date("Y-m-d H:i:s").' ERROR_WRONG_COD_VALUE ', FILE_APPEND);
+//                                file_put_contents('/usr/share/nginx/html/restful_api/public/log/logtest.txt', date("Y-m-d H:i:s").' ERROR_WRONG_COD_VALUE ', FILE_APPEND);
                                 $output = array('status' => 'ERROR_WRONG_COD_VALUE');
                                 return $this->json($output);
                             } else {
@@ -441,7 +448,7 @@ class ParcelAgentApiController extends AbstractController
                         }
 
                         if ($meet_require == false) {
-                            file_put_contents('/usr/share/nginx/html/restful_api/public/log/logtest.txt', date("Y-m-d H:i:s").' ERROR_DUPLICATE_TRACKING ', FILE_APPEND);
+//                            file_put_contents('/usr/share/nginx/html/restful_api/public/log/logtest.txt', date("Y-m-d H:i:s").' ERROR_DUPLICATE_TRACKING ', FILE_APPEND);
                             $output = array('status' => 'ERROR_DUPLICATE_TRACKING');
                             return $this->json($output);
 
@@ -669,20 +676,23 @@ class ParcelAgentApiController extends AbstractController
         if ($data['billNo'] == '') {
             $output = array("status" => "ERROR_DATA_NOT_COMPLETE");
         } else {
+            $conn = $em->getConnection();
             $query = "SELECT mb.parcel_ref as tracking,mb.orderdate as orderDate,mb.ordername as orderName,mb.ordertransport as productType, mb.payment_amt as codValue, mDetail.productname as productName,mDetail.delivery_fee as deliveryFee " .
                 "FROM merchant_billing mb " .
                 "JOIN merchant_billing_detail mDetail " .
                 "ON mb.takeorderby=mDetail.takeorderby AND mb.payment_invoice=mDetail.payment_invoice " .
-                "WHERE mb.parcel_bill_no='" . $data['billNo'] . "'";
-            $merchantInfo = $em->getConnection()->query($query);
-            $merchantDetail = json_decode($this->json($merchantInfo)->getContent(), true);
+                "WHERE mb.parcel_bill_no=:billNo";
+            $merchantInfo = $conn->prepare($query);
+            $merchantInfo->execute(array('billNo' => $data['billNo']));
 
-            if ($merchantDetail == null) {
+            if ($merchantInfo->rowCount() == 0) {
                 $output = array("status" => "ERROR_NOT_FOUND_BILLING");
             } else {
-                foreach ($merchantDetail as $item) {
+                $merchantDetail = json_decode($this->json($merchantInfo)->getContent(), true);
+                foreach ($merchantInfo as $item) {
                     $sumFee += $item['deliveryFee'];
                 }
+
                 $output = array("status" => "SUCCESS",
                     "receiptDetail" => $merchantDetail,
                     "sumReceipt" => $sumFee
@@ -797,20 +807,23 @@ class ParcelAgentApiController extends AbstractController
         date_default_timezone_set("Asia/Bangkok");
         $dateToday = date("Y-m-d", strtotime("now"));
         $data = json_decode($request->getContent(), true);
+
         if($data['dateDrop']=='' || $data['agentUserId']=='' || $data['agentMerId']=='' || $data['shopMerId']==''){
             $output = ["status" => "ERROR_DATA_NOT_COMPLETE"];
         } else {
             $date = new \DateTime($data['dateDrop']);
+
             $trackingWaitingShopScan = $repCheckParcelDrop->findRemainTracking($data['agentUserId'], $data['agentMerId'], $date);
             if (count($data['trackingList']) <= 0) {
                 $output = array("status" => "ERROR_NOT_TRACKING_LIST");
             } else {
                 foreach ($data['trackingList'] as $tracking) {
-                    $checkParcelTracking = $repCheckParcelDrop->findOneBy(array('parcelRef' => $tracking['tracking'],
+
+                    $checkParcelTracking = $repCheckParcelDrop->findOneBy(array('parcelRef' => mb_strtoupper($tracking['tracking']),
                         'merId' => $data['agentMerId']
                     ));
                     if ($checkParcelTracking == null) {
-                        $trackingNotfound[] = ["tracking" => $tracking['tracking']];
+                        $trackingNotfound[] = ["tracking" => mb_strtoupper($tracking['tracking'])];
                         $output = array("status" => "ERROR_NO_TRACKING", "trackingList" => $trackingNotfound);
                     } else {
                         $checkParcelTracking->setDropMerId($data['shopMerId']);

@@ -15,23 +15,22 @@ class ParcelController extends AbstractController
     /**
      * @Route("/parcel/list/member/api", methods={"POST"})
      */
-    public function selectParcelMember(Request $request, ParcelMemberRepository $repParcelMember)
+    public function selectParcelMember(Request $request, ParcelMemberRepository $repParcelMember, EntityManagerInterface $em)
     {
-//        header("Access-Control-Allow-Origin: *");
         $data = json_decode($request->getContent(), true);
         if($data['branch_id']==''){
             $output=['status'=>'ERROR_DATA_NOT_COMPLETE'];
         } else {
-            $entityManager = $this->getDoctrine()->getManager();
-            $sql = "SELECT member_id,citizenid,firstname,lastname,aliasname,ref_address as address,phoneregis FROM parcel_member where merid=".$data['branch_id'];
-            $listMember = $entityManager->getConnection()->query($sql);
-            $memberInfo=json_decode($this->json($listMember)->getContent(), true);
+            $conn = $em->getConnection();
+            $query = "SELECT member_id,citizenid,firstname,lastname,aliasname,ref_address as address,phoneregis FROM parcel_member where merid=:branch_id";
+            $listMember = $conn->prepare($query);
+            $listMember->execute(array('branch_id' => $data['branch_id']));
 
-            if(count($memberInfo)==0){
+            if($listMember->rowCount() == 0){
                 $output=['status'=>'ERROR_DATA_NOT_FOUND'];
             } else {
                 $output=['status'=>'SUCCESS',
-                    'listMember'=>$memberInfo];
+                    'listMember'=>$listMember];
             }
         }
 
@@ -53,28 +52,31 @@ class ParcelController extends AbstractController
 
         $resultIdCardCheck=$this->validatePID($data['member_code']);
 
-        $sql = "SELECT member_id as member_code, merid as branch_id,firstname as first_name, lastname as last_name,phoneregis as phone, ref_address as address, bankacc as bank_account_no,bank_acc_name,bank_issue as bank_name ".
-            "FROM parcel_member WHERE merid=".$data['merId']." AND ";
+        $conn = $em->getConnection();
+        $query = "SELECT member_id as member_code, merid as branch_id,firstname as first_name, lastname as last_name,phoneregis as phone, ref_address as address, bankacc as bank_account_no,bank_acc_name,bank_issue as bank_name ".
+            "FROM parcel_member WHERE merid=:merId AND ";
 
         if(count($splMemberCode)==13 && $resultIdCardCheck==true){
-            $sql.="citizenid ='" . $memberCode."'";
+            $query.="citizenid =:memberCode";
         } else if (count($splMemberCode)==11 && preg_match($patternPhone,$memberCode)){
-            $sql.="phoneregis ='" . $memberCode."'";
+            $query.="phoneregis =:memberCode";
         } else {
-            $sql.="member_id ='" . $memberCode."'";
+            $query.="member_id =:memberCode";
         }
+        $selectMemberInfo = $conn->prepare($query);
+        $selectMemberInfo->execute(array('merId'=>$data['merId'],'memberCode' => $memberCode));
 
-        $selectMemberInfo = $em->getConnection()->query($sql);
-        $memberInfo = json_decode($this->json($selectMemberInfo)->getContent(), true);
-
-        if(count($splMemberCode)==13 && $resultIdCardCheck==true && $memberInfo==null) {
+        if(count($splMemberCode)==13 && $resultIdCardCheck==true && $selectMemberInfo->rowCount()==0) {
+            $conn = $em->getConnection();
             $sql = "SELECT member_id as member_code, merid as branch_id,firstname as first_name, lastname as last_name,phoneregis as phone, ref_address as address, bankacc as bank_account_no,bank_acc_name,bank_issue as bank_name ".
-                "FROM parcel_member WHERE merid=".$data['merId']." AND member_id ='" .$memberCode."'";
-            $queryMemberInfo = $em->getConnection()->query($sql);
-            $resultMemberInfo = json_decode($this->json($queryMemberInfo)->getContent(), true);
-            if($resultMemberInfo==null){
+                "FROM parcel_member WHERE merid=:merId AND member_id =:memberCode";
+            $queryMemberInfo = $conn->prepare($sql);
+            $queryMemberInfo->execute(array('merId'=>$data['merId'],'memberCode' => $memberCode));
+
+            if($queryMemberInfo->rowCount()==0){
                 $output=['status'=>'ERROR_NOT_FOUND'];
             } else {
+                $resultMemberInfo = json_decode($this->json($queryMemberInfo)->getContent(), true);
                 $output = ['status' => 'SUCCESS',
                     'member_code' => $resultMemberInfo[0]['member_code'],
                     'branch_id' => $resultMemberInfo[0]['branch_id'],
@@ -87,9 +89,10 @@ class ParcelController extends AbstractController
                     'bank_name' => $resultMemberInfo[0]['bank_name']
                 ];
             }
-        } else if($memberInfo==null){
+        } else if($selectMemberInfo->rowCount()==0){
             $output=['status'=>'ERROR_NOT_FOUND'];
         } else {
+            $memberInfo = json_decode($this->json($selectMemberInfo)->getContent(), true);
             $output = ['status' => 'SUCCESS',
                 'member_code' => $memberInfo[0]['member_code'],
                 'branch_id' => $memberInfo[0]['branch_id'],
@@ -182,13 +185,16 @@ class ParcelController extends AbstractController
         if($data['bill_no']==""){
             $output=['status'=>'ERROR_DATA_NOT_COMPLETE'];
         } else {
-            $query = "SELECT peak_url_receipt_webview FROM merchant_billing WHERE parcel_bill_no = '" . $data['bill_no'] . "' GROUP BY parcel_bill_no LIMIT 0, 1";
-            $queryTaxBill = $em->getConnection()->query($query);
-            $taxBillUrl = json_decode($this->json($queryTaxBill)->getContent(), true);
+            $conn = $em->getConnection();
+            $query = "SELECT peak_url_receipt_webview FROM merchant_billing WHERE parcel_bill_no = :bill_no GROUP BY parcel_bill_no LIMIT 0, 1";
+            $queryTaxBill = $conn->prepare($query);
+            $queryTaxBill->execute(array('bill_no' => $data['bill_no']));
 
-            if($taxBillUrl[0]['peak_url_receipt_webview'] == null){
+            if($queryTaxBill->rowCount() == 0){
                 $output=['status'=>'ERROR_NO_TAX_BILL'];
             } else {
+                $taxBillUrl = json_decode($this->json($queryTaxBill)->getContent(), true);
+
                 $output=['status'=>'SUCCESS',
                     'peak_url_receipt_webview'=>$taxBillUrl[0]['peak_url_receipt_webview']];
             }

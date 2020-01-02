@@ -25,19 +25,22 @@ class ThaipostServiceController extends AbstractController
     /**
      * @Route("/thaipost/service/search/mailcode/api", methods={"GET"})
      */
-    public function searchMailCode(Request $request)
+    public function searchMailCode(Request $request ,EntityManagerInterface $em)
     {
         $sendMailDate = $request->query->get('sendMailDate');
 
-        $entityManager = $this->getDoctrine()->getManager();
-        $sql = "SELECT mailcode FROM merchant_billing_delivery WHERE transporter_id=99 AND DATE(sendmaildate) = '" . $sendMailDate . "'";
-        $listMailCode = $entityManager->getConnection()->query($sql);
-        $mailCode = json_decode($this->json($listMailCode)->getContent(), true);
+//        $entityManager = $this->getDoctrine()->getManager();
+        $conn = $em->getConnection();
+        $query = "SELECT mailcode FROM merchant_billing_delivery WHERE transporter_id=99 AND Date(sendmaildate) = :sendMailDate";
+        $listMailCode = $conn->prepare($query);
+        $listMailCode->execute(array('sendMailDate' => $sendMailDate));
+//        $listMailCode = $entityManager->getConnection()->query($sql);
+//        $mailCode = json_decode($this->json($listMailCode)->getContent(), true);
 
-        if ($mailCode == null) {
+        if ($listMailCode->rowCount() == 0) {
             $output = ['status' => 'ERROR_NOT_FOUND'];
         } else {
-            $output = ['status' => 'SUCCESS', 'listMailCode' => $mailCode];
+            $output = ['status' => 'SUCCESS', 'listMailCode' => $listMailCode];
         }
 
         return $this->json($output);

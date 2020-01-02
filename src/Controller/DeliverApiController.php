@@ -64,7 +64,7 @@ class DeliverApiController extends AbstractController
     /**
      * @Route("/deliver/list/daily/box/api", methods={"POST"})
      */
-    public function listDailyBoxes(Request $request, EntityManagerInterface $em)
+    public function listDailyBoxes(Request $request,EntityManagerInterface $em)
     {
         date_default_timezone_set("Asia/Bangkok");
 
@@ -76,18 +76,20 @@ class DeliverApiController extends AbstractController
         if ($data['operator'] == '') {
             $output = ["status" => "ERROR_DATA_NOT_COMPLETE"];
         } else {
-            $query = "SELECT count(tracking_no) as cTracking, tracking_datestamp as intervalDate " .
-                "FROM counter_data " .
-                "WHERE operator='" . $data['operator'] . "' AND tracking_datestamp >'" . $datePrevious . "' AND tracking_datestamp <= '" . $dateToday . "' " .
-                "GROUP BY tracking_datestamp " .
-                "ORDER BY tracking_datestamp DESC";
-            $queryListDateBoxes = $em->getConnection()->query($query);
-            $listDateBoxes = json_decode($this->json($queryListDateBoxes)->getContent(), true);
-            if ($listDateBoxes == null) {
+            $conn = $em->getConnection();
+            $query = "SELECT count(tracking_no) as cTracking, tracking_datestamp as intervalDate FROM counter_data " .
+                "WHERE operator=:operator AND tracking_datestamp > :datePrevious AND tracking_datestamp <= :dateToday " .
+                "GROUP BY tracking_datestamp ORDER BY tracking_datestamp DESC";
+            $queryListDateBoxes = $conn->prepare($query);
+            $queryListDateBoxes->execute(array('operator' => $data['operator'],
+                'datePrevious'=>$datePrevious,
+                'dateToday'=>$dateToday));
+
+            if ($queryListDateBoxes->rowCount() == 0) {
                 $output = ["status" => "ERROR_NOT_FOUND"];
             } else {
                 $output = ["status" => "SUCCESS",
-                    "listDateBoxes" => $listDateBoxes
+                    "listDateBoxes" => $queryListDateBoxes
                 ];
             }
         }
@@ -105,14 +107,16 @@ class DeliverApiController extends AbstractController
         if ($data['operator'] == '' || $data['date'] == '') {
             $output = ["status" => "ERROR_DATA_NOT_COMPLETE"];
         } else {
-            $query = "SELECT tracking_no as trackingNo FROM counter_data WHERE operator='" . $data['operator'] . "' AND tracking_datestamp ='" . $data['date'] . "'";
-            $queryListTracking = $em->getConnection()->query($query);
-            $listTracking = json_decode($this->json($queryListTracking)->getContent(), true);
-            if ($listTracking == null) {
+            $conn = $em->getConnection();
+            $query = "SELECT tracking_no as trackingNo FROM counter_data WHERE operator=:operator AND tracking_datestamp =:dateTracking";
+            $queryListTracking = $conn->prepare($query);
+            $queryListTracking->execute(array('operator' => $data['operator'],
+                'dateTracking'=>$data['date']));
+            if ($queryListTracking->rowCount() == 0) {
                 $output = ["status" => "ERROR_NOT_FOUND"];
             } else {
                 $output = ["status" => "SUCCESS",
-                    "listTracking" => $listTracking
+                    "listTracking" => $queryListTracking
                 ];
             }
         }
@@ -187,9 +191,9 @@ class DeliverApiController extends AbstractController
                 foreach($data['trackingList'] as $item){
                     $randomStr=$this->generateId($data['transporter'],$item['tracking'],$data['licensePlate'],$data['operator'],$em);
 
-//                    $newCounterData="INSERT INTO counter_data(id,mer_id,user_id,tracking_no,transporter,license_plate,operator,signature,scan_date,scan_time,location_lat,location_lng,tracking_datestamp,tracking_timestamp) ".
-//                        "VALUES ('".$randomStr."','".$data['merId']."','".$data['userId']."','".$item['tracking']."','".$data['transporter']."','".$data['licensePlate']."','".$data['operator']."','".$data['signature']."',null,null,'".$lat."','".$lng."','".$trackingDateStamp."','".$data['trackingTimestamp']."')";
-//                    $em->getConnection()->query($newCounterData);
+                    $newCounterData="INSERT INTO counter_data(id,mer_id,user_id,tracking_no,transporter,license_plate,operator,signature,scan_date,scan_time,location_lat,location_lng,tracking_datestamp,tracking_timestamp) ".
+                        "VALUES ('".$randomStr."','".$data['merId']."','".$data['userId']."','".$item['tracking']."','".$data['transporter']."','".$data['licensePlate']."','".$data['operator']."','".$data['signature']."',null,null,'".$lat."','".$lng."','".$trackingDateStamp."','".$data['trackingTimestamp']."')";
+                    $em->getConnection()->query($newCounterData);
                     
                     $checkBillingPaymentMethod = $repMerchantBilling->findOneBy(array('parcelRef' => $item['tracking']));
                     if($checkBillingPaymentMethod->getPaymentMethod()=='60'){
@@ -248,12 +252,15 @@ class DeliverApiController extends AbstractController
         return implode(array_slice($chars, 0,25));
     }
 
-    private function isUniqueID($string,$em){
-        $query = "SELECT id FROM counter_data WHERE id = '".$string."'";
-        $checkId = $em->getConnection()->query($query);
-        $id = json_decode($this->json($checkId)->getContent(), true);
+    private function isUniqueID($string,$em) {
+        $conn = $em->getConnection();
+        $query = "SELECT id FROM counter_data WHERE id = :id";
+//        $checkId = $em->getConnection()->query($query);
+        $checkId = $conn->prepare($query);
+        $checkId->execute(array('id' => $string));
+//        $id = json_decode($this->json($checkId)->getContent(), true);
 
-        if($id==null) {
+        if($checkId->rowCount() == 0) {
             $return = false;
         } else {
             $return = true;
