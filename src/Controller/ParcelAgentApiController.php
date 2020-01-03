@@ -390,271 +390,274 @@ class ParcelAgentApiController extends AbstractController
         $tracks = [];
         $output = [];
 
-        if($data['owner'] =='' || $data['user_id']=='' || $data['agentMerId']=='' || $data['senderMemberId']=='' || $data['senderMerId']==''){
-//            file_put_contents('/usr/share/nginx/html/restful_api/public/log/logtest.txt', date("Y-m-d H:i:s").' ERROR_DATA_NOT_COMPLETE ', FILE_APPEND);
+        if($data['owner'] =='' || $data['user_id']=='' || $data['parcelBillNo']=='' || $data['member_id']=='' || $data['merid']=='') {
+            file_put_contents('/usr/share/nginx/html/restful_api/public/log/logtest.txt', date("Y-m-d H:i:s").' ERROR_DATA_NOT_COMPLETE ', FILE_APPEND);
             $output = array('status' => "ERROR_DATA_NOT_COMPLETE");
             return $this->json($output);
-        }else {
-            $checkMerchantActive=$repMerchantConfig->findOneBy(['takeorderby'=>$data['agentMerId'],'status'=>'active']);
-            if($checkMerchantActive== null ){
-//                file_put_contents('/usr/share/nginx/html/restful_api/public/log/logtest.txt', date("Y-m-d H:i:s").' ERROR_MER_ID_NOT_ACTIVE ', FILE_APPEND);
+        } else if(count($data['barcodes'])==0) {
+            file_put_contents('/usr/share/nginx/html/restful_api/public/log/logtest.txt', date("Y-m-d H:i:s").' ERROR_NO_TRACKING_LIST ', FILE_APPEND);
+            $output = array('status' => "ERROR_NO_TRACKING_LIST");
+            return $this->json($output);
+        } else {
+            $checkMerchantActive = $repMerchantConfig->findOneBy(['takeorderby' => $data['merid'], 'status' => 'active']);
+            $checkBillNo=$repMerchantBilling->findOneBy(['parcelBillNo'=>$data['parcelBillNo']]);
+
+            if ($checkMerchantActive == null) {
+                file_put_contents('/usr/share/nginx/html/restful_api/public/log/logtest.txt', date("Y-m-d H:i:s").' ERROR_MER_ID_NOT_ACTIVE ', FILE_APPEND);
                 $output = array('status' => 'ERROR_MER_ID_NOT_ACTIVE');
                 return $this->json($output);
+            } else if($checkBillNo !== null) {
+                file_put_contents('/usr/share/nginx/html/restful_api/public/log/logtest.txt', date("Y-m-d H:i:s").' ERROR_DUPLICATED_BILL_NO ', FILE_APPEND);
+                $output = array('status' => 'ERROR_DUPLICATED_BILL_NO');
+                return $this->json($output);
             } else {
-                if ($data['agentMerId'] != $data['senderMerId']) {
-//                    file_put_contents('/usr/share/nginx/html/restful_api/public/log/logtest.txt', date("Y-m-d H:i:s").' ERROR_MER_ID_NOT_MATCH ', FILE_APPEND);
-                    $output = array('status' => 'ERROR_MER_ID_NOT_MATCH');
-                    return $this->json($output);
-                } else {
-                    $meet_require = true;
-                    if (count($data['trackingList']) <= 0) {
-//                        file_put_contents('/usr/share/nginx/html/restful_api/public/log/logtest.txt', date("Y-m-d H:i:s").' ERROR_NO_TRACKING_LIST ', FILE_APPEND);
-                        $output = array('status' => "ERROR_NO_TRACKING_LIST");
+                $meet_require = true;
+                foreach ($data['barcodes'] as $itemTracking) {
+                    $patternTracking11 = '/^[T|t][D|d][Z|z]+[0-9]{8}?$/i';
+                    $patternTracking12 = '/^[T|t][D|d][Z|z]+[0-9]{8}[A-Z]?$/i';
+                    $tracking = trim($itemTracking['code']);
+
+                    $newTrackingArr = str_split($tracking);
+
+                    if ((count($newTrackingArr) == 11) && (!preg_match($patternTracking11, $tracking))) {
+                        file_put_contents('/usr/share/nginx/html/restful_api/public/log/logtest.txt', date("Y-m-d H:i:s").' ERROR_TRACKING_WRONG_FORMAT ', FILE_APPEND);
+                        $output = array('status' => 'ERROR_TRACKING_WRONG_FORMAT');
+                        return $this->json($output);
+                    } elseif ((count($newTrackingArr) == 12) && (!preg_match($patternTracking12, $tracking))) {
+                        file_put_contents('/usr/share/nginx/html/restful_api/public/log/logtest.txt', date("Y-m-d H:i:s").' ERROR_TRACKING_WRONG_FORMAT ', FILE_APPEND);
+                        $output = array('status' => 'ERROR_TRACKING_WRONG_FORMAT');
+                        return $this->json($output);
+                    } elseif (($itemTracking['transportType'] == 'cod') && ($itemTracking['amount'] == 0)) {
+                        file_put_contents('/usr/share/nginx/html/restful_api/public/log/logtest.txt', date("Y-m-d H:i:s").' ERROR_WRONG_COD_VALUE ', FILE_APPEND);
+                        $output = array('status' => 'ERROR_WRONG_COD_VALUE');
                         return $this->json($output);
                     } else {
-                        foreach ($data['trackingList'] as $itemTracking) {
-                            $patternTracking11 = '/^[T|t][D|d][Z|z]+[0-9]{8}?$/i';
-                            $patternTracking12 = '/^[T|t][D|d][Z|z]+[0-9]{8}[A-Z]?$/i';
-                            $tracking = trim($itemTracking['tracking']);
-
-                            $newTrackingArr = str_split($tracking);
-
-                            if ((count($newTrackingArr) == 11) && (!preg_match($patternTracking11, $tracking))) {
-//                                file_put_contents('/usr/share/nginx/html/restful_api/public/log/logtest.txt', date("Y-m-d H:i:s").' ERROR_TRACKING_WRONG_FORMAT ', FILE_APPEND);
-                                $output = array('status' => 'ERROR_TRACKING_WRONG_FORMAT');
-                                return $this->json($output);
-                            } elseif ((count($newTrackingArr) == 12) && (!preg_match($patternTracking12, $tracking))) {
-//                                file_put_contents('/usr/share/nginx/html/restful_api/public/log/logtest.txt', date("Y-m-d H:i:s").' ERROR_TRACKING_WRONG_FORMAT ', FILE_APPEND);
-                                $output = array('status' => 'ERROR_TRACKING_WRONG_FORMAT');
-                                return $this->json($output);
-                            } elseif (($itemTracking['transportType'] == 'cod') && ($itemTracking['codValue'] == 0)) {
-//                                file_put_contents('/usr/share/nginx/html/restful_api/public/log/logtest.txt', date("Y-m-d H:i:s").' ERROR_WRONG_COD_VALUE ', FILE_APPEND);
-                                $output = array('status' => 'ERROR_WRONG_COD_VALUE');
-                                return $this->json($output);
-                            } else {
-                                $tracks[] = $itemTracking['tracking'];
-                            }
-                        }
-
-                        if (count($tracks) > 0) {
-                            foreach ($tracks as $track) {
-                                $checkParcelRef = $repMerchantBilling->count(array('parcelRef' => $track));
-                                if ($checkParcelRef > 0) {
-                                    $meet_require = false;
-                                }
-                            }
-                        } else {
+                        $tracks[] = $itemTracking['code'];
+                    }
+                }
+                if (count($tracks) > 0) {
+                    foreach ($tracks as $track) {
+                        $checkParcelRef = $repMerchantBilling->count(array('parcelRef' => $track));
+                        if ($checkParcelRef > 0) {
                             $meet_require = false;
                         }
+                    }
+                } else {
+                    $meet_require = false;
+                }
 
-                        if ($meet_require == false) {
-//                            file_put_contents('/usr/share/nginx/html/restful_api/public/log/logtest.txt', date("Y-m-d H:i:s").' ERROR_DUPLICATE_TRACKING ', FILE_APPEND);
-                            $output = array('status' => 'ERROR_DUPLICATE_TRACKING');
-                            return $this->json($output);
+                if ($meet_require == false) {
+//                    file_put_contents('/usr/share/nginx/html/restful_api/public/log/logtest.txt', date("Y-m-d H:i:s").' ERROR_DUPLICATE_TRACKING ', FILE_APPEND);
+                    $output = array('status' => 'ERROR_DUPLICATE_TRACKING');
+                    return $this->json($output);
 
+                } else {
+                    ///////////////////////////////////////////GEN PARCEL BILL NO///////////////////////////////////////////////
+//                    $parcelBillNo = $data['agentMerId'] . '-' . $data['agentUserId'] . '-' . date("ymdHis") . '-' . rand(111, 999);
+                    $parcelBillNo=$data['parcelBillNo'];
+                    ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                    foreach ($data['barcodes'] as $item) {
+                        //////////////////////////////////////GEN TRANSPORT PRICE///////////////////////////////////////////////
+                        $districtCode = $repZipcode->findBy(array('zipcode' => $item['zipCode']));
+                        $provinceId = str_split($districtCode[0]->getDistrictCode());
+
+                        if ($item['transportType'] == 'normal' && $item['zipCode'] == '13180' && $item['provinceId'] == '4') {
+                            //normal-ปทุมธานี
+                            $productIdSize = [17945, 171313, 17946, 17947, 17948, 17949, 17950, 17951, 17952];
+                        } elseif ($item['transportType'] == 'normal' && $item['zipCode'] == '13180' && $item['provinceId'] == '5') {
+                            //normal-อยุธยา
+                            $productIdSize = [17958, 171314, 17959, 17960, 17961, 17962, 17963, 17964, 17965];
+                        } elseif ($item['transportType'] == 'cod' && $item['zipCode'] == '13180' && $item['provinceId'] == '4') {
+                            //cod-ปทุมธานี
+                            $productIdSize = [17966, 171315, 17967, 17968, 17969, 17970, 17971, 17972, 17973];
+                        } elseif ($item['transportType'] == 'cod' && $item['zipCode'] == '13180' && $item['provinceId'] == '5') {
+                            //cod-อยุธยา
+                            $productIdSize = [17974, 171316, 17975, 17976, 17977, 17978, 17979, 17980, 17981];
+                        } elseif ($item['transportType'] == 'normal' && (intval($provinceId[0] . $provinceId[1]) >= 10 && intval($provinceId[0] . $provinceId[1]) < 14)) {
+                            //normal bkk
+                            $productIdSize = [17945, 171313, 17946, 17947, 17948, 17949, 17950, 17951, 17952];
+                        } elseif ($item['transportType'] == 'normal' && intval($provinceId[0] . $provinceId[1]) > 14) {
+                            //normal non-bkk
+                            $productIdSize = [17958, 171314, 17959, 17960, 17961, 17962, 17963, 17964, 17965];
+                        } elseif ($item['transportType'] == 'cod' && (intval($provinceId[0] . $provinceId[1]) >= 10 && intval($provinceId[0] . $provinceId[1]) < 14)) {
+                            //cod bkk
+                            $productIdSize = [17966, 171315, 17967, 17968, 17969, 17970, 17971, 17972, 17973];
                         } else {
-                            ///////////////////////////////////////////GEN PARCEL BILL NO///////////////////////////////////////////////
-//                            $parcelBillNo = $data['agentMerId'] . '-' . $data['agentUserId'] . '-' . date("ymdHis") . '-' . rand(111, 999);
-                            $parcelBillNo=$data['parcelBillNo'];
-                            ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-                            foreach ($data['trackingList'] as $item) {
-                                //////////////////////////////////////GEN TRANSPORT PRICE///////////////////////////////////////////////
-                                $districtCode = $repZipcode->findBy(array('zipcode' => $item['zipcode']));
-                                $provinceId = str_split($districtCode[0]->getDistrictCode());
+                            //cod non-bkk
+                            $productIdSize = [17974, 171316, 17975, 17976, 17977, 17978, 17979, 17980, 17981];
+                        }
 
-                                if ($item['transportType'] == 'normal' && $item['zipcode'] == '13180' && $item['provinceId'] == '4') {
-                                    //normal-ปทุมธานี
-                                    $productIdSize = [17945, 171313, 17946, 17947, 17948, 17949, 17950, 17951, 17952];
-                                } elseif ($item['transportType'] == 'normal' && $item['zipcode'] == '13180' && $item['provinceId'] == '5') {
-                                    //normal-อยุธยา
-                                    $productIdSize = [17958, 171314, 17959, 17960, 17961, 17962, 17963, 17964, 17965];
-                                } elseif ($item['transportType'] == 'cod' && $item['zipcode'] == '13180' && $item['provinceId'] == '4') {
-                                    //cod-ปทุมธานี
-                                    $productIdSize = [17966, 171315, 17967, 17968, 17969, 17970, 17971, 17972, 17973];
-                                } elseif ($item['transportType'] == 'cod' && $item['zipcode'] == '13180' && $item['provinceId'] == '5') {
-                                    //cod-อยุธยา
-                                    $productIdSize = [17974, 171316, 17975, 17976, 17977, 17978, 17979, 17980, 17981];
-                                } elseif ($item['transportType'] == 'normal' && (intval($provinceId[0] . $provinceId[1]) >= 10 && intval($provinceId[0] . $provinceId[1]) < 14)) {
-                                    //normal bkk
-                                    $productIdSize = [17945, 171313, 17946, 17947, 17948, 17949, 17950, 17951, 17952];
-                                } elseif ($item['transportType'] == 'normal' && intval($provinceId[0] . $provinceId[1]) > 14) {
-                                    //normal non-bkk
-                                    $productIdSize = [17958, 171314, 17959, 17960, 17961, 17962, 17963, 17964, 17965];
-                                } elseif ($item['transportType'] == 'cod' && (intval($provinceId[0] . $provinceId[1]) >= 10 && intval($provinceId[0] . $provinceId[1]) < 14)) {
-                                    //cod bkk
-                                    $productIdSize = [17966, 171315, 17967, 17968, 17969, 17970, 17971, 17972, 17973];
-                                } else {
-                                    //cod non-bkk
-                                    $productIdSize = [17974, 171316, 17975, 17976, 17977, 17978, 17979, 17980, 17981];
-                                }
+                        $lowerParcelSize = strtolower($item['size']);
+                        if ($lowerParcelSize == 'miniplus') {
+                            $parcelSize = 'mini+';
+                        } elseif ($lowerParcelSize == 'splus') {
+                            $parcelSize = 's+';
+                        } elseif ($lowerParcelSize == 'mplus') {
+                            $parcelSize = 'm+';
+                        } else {
+                            $parcelSize = $lowerParcelSize;
+                        }
 
-                                $lowerParcelSize = strtolower($item['parcelSize']);
-                                if ($lowerParcelSize == 'miniplus') {
-                                    $parcelSize = 'mini+';
-                                } elseif ($lowerParcelSize == 'splus') {
-                                    $parcelSize = 's+';
-                                } elseif ($lowerParcelSize == 'mplus') {
-                                    $parcelSize = 'm+';
-                                } else {
-                                    $parcelSize = $lowerParcelSize;
-                                }
+                        $parcelPriceSize = $repMerchantProduct->findParcelSizePrice($data['merid'], $productIdSize, $parcelSize);
+                        if ($parcelPriceSize == null) {
+                            $output = array('status' => 'ERROR_NO_PRODUCT');
+                        } else {
+                            /*get new invoice*/
+                            $em->beginTransaction();
+                            $em->getConnection()->exec('LOCK TABLES merchant_billing_geninv WRITE;');
+                            $conn=$em->getConnection();
+                            $sql="SELECT MAX(geninvoice) as maxInvId FROM merchant_billing_geninv WHERE takeorderby=:merId";
+                            $maxInvId = $conn->prepare($sql);
+                            $maxInvId->execute(array('merId' => $data['merid']));
 
-                                $parcelPriceSize = $repMerchantProduct->findParcelSizePrice($data['agentMerId'], $productIdSize, $parcelSize);
-                                if ($parcelPriceSize == null) {
-                                    $output = array('status' => 'ERROR_NO_PRODUCT');
-                                } else {
-                                    /*get new invoice*/
-                                    $em->beginTransaction();
-                                    $em->getConnection()->exec('LOCK TABLES merchant_billing_geninv WRITE;');
-                                    $output = $em->getConnection()->query("SELECT MAX(geninvoice) as maxId FROM merchant_billing_geninv WHERE takeorderby=" . $data['agentMerId']);
-                                    $maxId = json_decode($this->json($output)->getContent(), true);
-                                    $invId = 0;
-                                    if ($maxId) {
-                                        $invId = $maxId[0]["maxId"] + 1;
-                                    }
-                                    $newInvoice = new MerchantBillingGeninv();
-                                    $newInvoice->setDatestamp(new \DateTime("now", new \DateTimeZone('Asia/Bangkok')));
-                                    $newInvoice->setTakeorderby($data['agentMerId']);
-                                    $newInvoice->setGeninvoice($invId);
-                                    $em->persist($newInvoice);
-                                    $em->flush();
-                                    $em->getConnection()->exec('UNLOCK TABLES;');
-                                    ////////////////////////////////GEN NEW INVOICE/////////////////////////////////////////////////
-                                    $prefix = $repMerchantConfig->findBy(array('takeorderby' => $data['agentMerId']));
-                                    $padMaxId = str_pad($invId, 5, "0", STR_PAD_LEFT);
-                                    $paymentInvoice = $prefix[0]->getInvPrefix() . date("ymd") . $padMaxId;
-                                    ///////////////////////////////GEN RECORD ID////////////////////////////////////////////////////
-                                    $mtime = str_replace(".", "", microtime(true));
-                                    // $keystring = _generateRandomString();
-                                    $keystring = random_bytes(10);
-                                    $keystring = sha1($keystring . uniqid(true) . md5(date("ymdHisU"))) . rand(111, 999) . $mtime;
-                                    $keystring = date("YmdHis") . $keystring . $data['agentMerId'] . $data['agentUserId'];
-                                    /////////////////////////////////INSERT MERCHANT BILLING DATA///////////////////////////////////
-                                    $merchantBilling = new MerchantBilling();
-                                    $merchantBilling->setTakeorderby($data['agentMerId']);
-                                    $merchantBilling->setAdminid($data['agentUserId']);
-                                    $merchantBilling->setPaymentInvoice($paymentInvoice);
-                                    $merchantBilling->setPaymentAmt($item['codValue']);
-                                    $merchantBilling->setPaymentDiscount($item['codValue']);
-                                    $merchantBilling->setTransportprice($parcelPriceSize[0]['productprice']);//ค่าส่ง
-                                    if ($item['transportType'] == 'normal') {
-                                        $merchantBilling->setPaymentStatus('00');
-                                        $merchantBilling->setPaymentdate(new \DateTime($dateToday, new \DateTimeZone('Asia/Bangkok')));
-                                        $merchantBilling->setPaycodeExpiredate(new \DateTime($dateExpire, new \DateTimeZone('Asia/Bangkok')));
-                                        $merchantBilling->setOrderstatus('103');
-                                        $merchantBilling->setPaymentMethod('99');
-                                    } else {
-                                        $merchantBilling->setPaymentStatus('02');
-                                        $merchantBilling->setPaymentdate(null);
-                                        $merchantBilling->setPaycodeExpiredate(null);
-                                        $merchantBilling->setOrderstatus('102');
-                                        $merchantBilling->setPaymentMethod('60');
-                                    }
-                                    $merchantBilling->setPaycode(null);
-                                    $merchantBilling->setOrderstatusDatetime(new \DateTime($dateToday, new \DateTimeZone('Asia/Bangkok')));
-                                    $merchantBilling->setOrderdate(new \DateTime($dateToday, new \DateTimeZone('Asia/Bangkok')));
-                                    $merchantBilling->setOrdertransport($item['transportType']);
-                                    $merchantBilling->setOrdername('');
-                                    $merchantBilling->setOrderaddr('');
-                                    $merchantBilling->setDistrict('');
-                                    $merchantBilling->setDistrictcode(0);
-                                    $merchantBilling->setAmphur('');
-                                    $merchantBilling->setAmphercode(0);
-                                    $merchantBilling->setProvince('');
-                                    $merchantBilling->setProvincecode('');
-                                    $merchantBilling->setGeoname('');
-                                    $merchantBilling->setGeoid(0);
-                                    $merchantBilling->setZipcode($item['zipcode']);
-                                    $merchantBilling->setOrderemail('-');
-                                    $merchantBilling->setOrderphoneno('66');
-                                    $merchantBilling->setOrdershortnote('');
-                                    $merchantBilling->setShortnoteupdateby(0);
-                                    $merchantBilling->setOrderremark('-');
-                                    $merchantBilling->setParcelRef($item['tracking']);
-                                    $merchantBilling->setParcelBillNo($parcelBillNo);
-                                    $merchantBilling->setParcelMemberId($data['senderMemberId']);
-                                    $merchantBilling->setBillingno(null);
-                                    $merchantBilling->setExtRecordId($keystring);
-                                    $merchantBilling->setPeakValue('');
-                                    $merchantBilling->setPeakInvId('');
-                                    $merchantBilling->setPeakInvoiceSend(0);
-                                    $merchantBilling->setPeakReceiptSend(0);
-                                    $merchantBilling->setPeakCodReceiptSend(0);
-                                    $merchantBilling->setPeakUrlInvoiceWebview('');
-                                    $merchantBilling->setPeakUrlReceiptWebview('');
-                                    $merchantBilling->setPeakUrlCodReceiptWebview(null);
-                                    $merchantBilling->setPeakError(null);
-                                    $merchantBilling->setPeakErrorTimestamp(null);
-                                    $merchantBilling->setRecordFrom("Parcel Agent Mobile App");
+                            $maxId = json_decode($this->json($maxInvId)->getContent(), true);
 
-                                    ///////////////////////////////////INSERT MERCHANT BILLING DETAIL DATA//////////////////////////////
-                                    $globalProduct = $repGlobalProduct->findBy(array('productid' => $parcelPriceSize[0]['pId']));
-                                    $parcelMember = $repParcelMember->findBy(array('memberId' => $data['senderMemberId']));
-                                    $globalProductImg = $repGlobalProductImg->findBy(array('productcode' => $parcelPriceSize[0]['pId']));
-
-                                    $merchantBillingDetail = new MerchantBillingDetail();
-                                    $merchantBillingDetail->setTakeorderby($data['agentMerId']);
-                                    $merchantBillingDetail->setPaymentInvoice($paymentInvoice);
-                                    $merchantBillingDetail->setProductid($parcelPriceSize[0]['mId']);
-                                    $merchantBillingDetail->setGlobalProductid($parcelPriceSize[0]['pId']);
-                                    $merchantBillingDetail->setProductname($parcelPriceSize[0]['productname']);
-                                    $merchantBillingDetail->setProductorder(1);
-                                    $merchantBillingDetail->setProductprice($item['codValue']);
-                                    $merchantBillingDetail->setProductcost($parcelPriceSize[0]['productcost']);
-                                    $merchantBillingDetail->setProductPoint(0);
-                                    $merchantBillingDetail->setProductCommission(0);
-                                    $merchantBillingDetail->setProductCommissionPercent(0);
-                                    $merchantBillingDetail->setDeliveryFeeMultiStep(null);
-                                    $merchantBillingDetail->setDeliveryFee($globalProduct[0]->getDeliveryFee());
-                                    $merchantBillingDetail->setDeliveryFeeInPrice($globalProduct[0]->getDeliveryFeeInPrice());
-                                    $merchantBillingDetail->setDeliveryFeeRatio($globalProduct[0]->getDeliveryFeeRatio());
-                                    if ($globalProductImg == null) {
-                                        $merchantBillingDetail->setImgproductonbill(null);
-                                    } else {
-                                        $merchantBillingDetail->setImgproductonbill($globalProductImg[0]->getThumbimg());
-                                    }
-                                    $merchantBillingDetail->setImgproductpathonbill(null);
-                                    $merchantBillingDetail->setNoteremark($data['senderMemberId'] . '-' . $parcelMember[0]->getAliasname() . '-' . $paymentInvoice);
-                                    $merchantBillingDetail->setCommissionset(null);
-                                    $merchantBillingDetail->setTimestamp(new \DateTime($dateToday, new \DateTimeZone('Asia/Bangkok')));
-                                    $merchantBillingDetail->setOwnerproduct(0);
-                                    $merchantBillingDetail->setOwnerBillNo('');
-                                    ///////////////////////////////////INSERT MERCHANT BILLING DELIVERY DATA////////////////////////////
-                                    $globalWarehouse = $repGlobalWarehouse->findBy(array('id' => $globalProduct[0]->getWarehouse()));
-                                    $merchantBillingDelivery = new MerchantBillingDelivery();
-                                    $merchantBillingDelivery->setTakeorderby($data['agentMerId']);
-                                    $merchantBillingDelivery->setPaymentInvoice($paymentInvoice);
-                                    $merchantBillingDelivery->setPaymentSubInvoice($data['agentMerId'] . '-' . $paymentInvoice . '-' . $globalProduct[0]->getWarehouse());
-                                    $merchantBillingDelivery->setCodPrice($item['codValue']);
-                                    $merchantBillingDelivery->setExpenseDiscount(0);
-                                    $merchantBillingDelivery->setGlobalWarehouse($globalWarehouse[0]->getWarehouseTier());
-                                    // $merchantBillingDelivery->setWarehouseId($globalProduct[0]->getWarehouse());
-                                    $merchantBillingDelivery->setWarehouseId(0);
-                                    $merchantBillingDelivery->setMailcode($item['tracking']);
-                                    $merchantBillingDelivery->setTransporterId(0);
-                                    $merchantBillingDelivery->setProductParcelSize(0);
-                                    $merchantBillingDelivery->setPrepareMailcode($item['tracking']);
-                                    ///////////////////////////////////INSERT FLAG TRACKING DATA////////////////////////////////////////
-                                    $checkParcelDrop = new CheckParcelDrop();
-                                    $checkParcelDrop->setMerId($data['agentMerId']);
-                                    $checkParcelDrop->setAgentUserId($data['agentUserId']);
-                                    $checkParcelDrop->setPaymentInvoice($paymentInvoice);
-                                    $checkParcelDrop->setParcelRef($item['tracking']);
-                                    $checkParcelDrop->setDateDrop(new \DateTime($dateToday, new \DateTimeZone('Asia/Bangkok')));
-                                    $checkParcelDrop->setStatus(0);
-
-                                    $em->persist($merchantBilling);
-                                    $em->persist($merchantBillingDetail);
-                                    $em->persist($merchantBillingDelivery);
-                                    $em->persist($checkParcelDrop);
-                                    $em->flush();
-
-                                    $output = array('status' => 'SUCCESS',
-                                        'orderDate' => $dateToday,
-                                        'parcelBillNo' => $parcelBillNo
-                                    );
-                                }
+                            $invId = 0;
+                            if ($maxInvId->rowCount()>0) {
+                                $invId = $maxId[0]["maxInvId"] + 1;
                             }
+
+                            $newInvoice = new MerchantBillingGeninv();
+                            $newInvoice->setDatestamp(new \DateTime("now", new \DateTimeZone('Asia/Bangkok')));
+                            $newInvoice->setTakeorderby($data['merid']);
+                            $newInvoice->setGeninvoice($invId);
+                            $em->persist($newInvoice);
+                            $em->flush();
+                            $em->getConnection()->exec('UNLOCK TABLES;');
+                            ////////////////////////////////GEN NEW INVOICE/////////////////////////////////////////////////
+                            $prefix = $repMerchantConfig->findBy(array('takeorderby' => $data['merid']));
+                            $padMaxId = str_pad($invId, 5, "0", STR_PAD_LEFT);
+                            $paymentInvoice = $prefix[0]->getInvPrefix() . date("ymd") . $padMaxId;
+                            ///////////////////////////////GEN RECORD ID////////////////////////////////////////////////////
+                            $mtime = str_replace(".", "", microtime(true));
+                            // $keystring = _generateRandomString();
+                            $keystring = random_bytes(10);
+                            $keystring = sha1($keystring . uniqid(true) . md5(date("ymdHisU"))) . rand(111, 999) . $mtime;
+                            $keystring = date("YmdHis") . $keystring . $data['merid'] . $data['user_id'];
+                            /////////////////////////////////INSERT MERCHANT BILLING DATA///////////////////////////////////
+                            $merchantBilling = new MerchantBilling();
+                            $merchantBilling->setTakeorderby($data['merid']);
+                            $merchantBilling->setAdminid($data['user_id']);
+                            $merchantBilling->setPaymentInvoice($paymentInvoice);
+                            $merchantBilling->setPaymentAmt($item['amount']);
+                            $merchantBilling->setPaymentDiscount($item['amount']);
+                            $merchantBilling->setTransportprice($parcelPriceSize[0]['productprice']);//ค่าส่ง
+                            if ($item['transportType'] == 'normal') {
+                                $merchantBilling->setPaymentStatus('00');
+                                $merchantBilling->setPaymentdate(new \DateTime($dateToday, new \DateTimeZone('Asia/Bangkok')));
+                                $merchantBilling->setPaycodeExpiredate(new \DateTime($dateExpire, new \DateTimeZone('Asia/Bangkok')));
+                                $merchantBilling->setOrderstatus('103');
+                                $merchantBilling->setPaymentMethod('99');
+                            } else {
+                                $merchantBilling->setPaymentStatus('02');
+                                $merchantBilling->setPaymentdate(null);
+                                $merchantBilling->setPaycodeExpiredate(null);
+                                $merchantBilling->setOrderstatus('102');
+                                $merchantBilling->setPaymentMethod('60');
+                            }
+                            $merchantBilling->setPaycode(null);
+                            $merchantBilling->setOrderstatusDatetime(new \DateTime($dateToday, new \DateTimeZone('Asia/Bangkok')));
+                            $merchantBilling->setOrderdate(new \DateTime($dateToday, new \DateTimeZone('Asia/Bangkok')));
+                            $merchantBilling->setOrdertransport($item['transportType']);
+                            $merchantBilling->setOrdername('');
+                            $merchantBilling->setOrderaddr('');
+                            $merchantBilling->setDistrict('');
+                            $merchantBilling->setDistrictcode(0);
+                            $merchantBilling->setAmphur('');
+                            $merchantBilling->setAmphercode(0);
+                            $merchantBilling->setProvince('');
+                            $merchantBilling->setProvincecode('');
+                            $merchantBilling->setGeoname('');
+                            $merchantBilling->setGeoid(0);
+                            $merchantBilling->setZipcode($item['zipCode']);
+                            $merchantBilling->setOrderemail('-');
+                            $merchantBilling->setOrderphoneno('66');
+                            $merchantBilling->setOrdershortnote('');
+                            $merchantBilling->setShortnoteupdateby(0);
+                            $merchantBilling->setOrderremark('-');
+                            $merchantBilling->setParcelRef($item['code']);
+                            $merchantBilling->setParcelBillNo($parcelBillNo);
+                            $merchantBilling->setParcelMemberId($data['member_id']);
+                            $merchantBilling->setBillingno(null);
+                            $merchantBilling->setExtRecordId($keystring);
+                            $merchantBilling->setPeakValue('');
+                            $merchantBilling->setPeakInvId('');
+                            $merchantBilling->setPeakInvoiceSend(0);
+                            $merchantBilling->setPeakReceiptSend(0);
+                            $merchantBilling->setPeakCodReceiptSend(0);
+                            $merchantBilling->setPeakUrlInvoiceWebview('');
+                            $merchantBilling->setPeakUrlReceiptWebview('');
+                            $merchantBilling->setPeakUrlCodReceiptWebview(null);
+                            $merchantBilling->setPeakError(null);
+                            $merchantBilling->setPeakErrorTimestamp(null);
+                            $merchantBilling->setRecordFrom("Parcel Agent Mobile App");
+
+                            ///////////////////////////////////INSERT MERCHANT BILLING DETAIL DATA//////////////////////////////
+                            $globalProduct = $repGlobalProduct->findBy(array('productid' => $parcelPriceSize[0]['pId']));
+                            $parcelMember = $repParcelMember->findBy(array('memberId' => $data['member_id']));
+                            $globalProductImg = $repGlobalProductImg->findBy(array('productcode' => $parcelPriceSize[0]['pId']));
+
+                            $merchantBillingDetail = new MerchantBillingDetail();
+                            $merchantBillingDetail->setTakeorderby($data['merid']);
+                            $merchantBillingDetail->setPaymentInvoice($paymentInvoice);
+                            $merchantBillingDetail->setProductid($parcelPriceSize[0]['mId']);
+                            $merchantBillingDetail->setGlobalProductid($parcelPriceSize[0]['pId']);
+                            $merchantBillingDetail->setProductname($parcelPriceSize[0]['productname']);
+                            $merchantBillingDetail->setProductorder(1);
+                            $merchantBillingDetail->setProductprice($item['amount']);
+                            $merchantBillingDetail->setProductcost($parcelPriceSize[0]['productcost']);
+                            $merchantBillingDetail->setProductPoint(0);
+                            $merchantBillingDetail->setProductCommission(0);
+                            $merchantBillingDetail->setProductCommissionPercent(0);
+                            $merchantBillingDetail->setDeliveryFeeMultiStep(null);
+                            $merchantBillingDetail->setDeliveryFee($globalProduct[0]->getDeliveryFee());
+                            $merchantBillingDetail->setDeliveryFeeInPrice($globalProduct[0]->getDeliveryFeeInPrice());
+                            $merchantBillingDetail->setDeliveryFeeRatio($globalProduct[0]->getDeliveryFeeRatio());
+                            if ($globalProductImg == null) {
+                                $merchantBillingDetail->setImgproductonbill(null);
+                            } else {
+                                $merchantBillingDetail->setImgproductonbill($globalProductImg[0]->getThumbimg());
+                            }
+                            $merchantBillingDetail->setImgproductpathonbill(null);
+                            $merchantBillingDetail->setNoteremark($data['member_id'] . '-' . $parcelMember[0]->getAliasname() . '-' . $paymentInvoice);
+                            $merchantBillingDetail->setCommissionset(null);
+                            $merchantBillingDetail->setTimestamp(new \DateTime($dateToday, new \DateTimeZone('Asia/Bangkok')));
+                            $merchantBillingDetail->setOwnerproduct(0);
+                            $merchantBillingDetail->setOwnerBillNo('');
+                            ///////////////////////////////////INSERT MERCHANT BILLING DELIVERY DATA////////////////////////////
+                            $globalWarehouse = $repGlobalWarehouse->findBy(array('id' => $globalProduct[0]->getWarehouse()));
+                            $merchantBillingDelivery = new MerchantBillingDelivery();
+                            $merchantBillingDelivery->setTakeorderby($data['merid']);
+                            $merchantBillingDelivery->setPaymentInvoice($paymentInvoice);
+                            $merchantBillingDelivery->setPaymentSubInvoice($data['merid'] . '-' . $paymentInvoice . '-' . $globalProduct[0]->getWarehouse());
+                            $merchantBillingDelivery->setCodPrice($item['amount']);
+                            $merchantBillingDelivery->setExpenseDiscount(0);
+                            $merchantBillingDelivery->setGlobalWarehouse($globalWarehouse[0]->getWarehouseTier());
+                            // $merchantBillingDelivery->setWarehouseId($globalProduct[0]->getWarehouse());
+                            $merchantBillingDelivery->setWarehouseId(0);
+                            $merchantBillingDelivery->setMailcode($item['code']);
+                            $merchantBillingDelivery->setTransporterId(0);
+                            $merchantBillingDelivery->setProductParcelSize(0);
+                            $merchantBillingDelivery->setPrepareMailcode($item['code']);
+                            ///////////////////////////////////INSERT FLAG TRACKING DATA////////////////////////////////////////
+                            $checkParcelDrop = new CheckParcelDrop();
+                            $checkParcelDrop->setMerId($data['merid']);
+                            $checkParcelDrop->setAgentUserId($data['user_id']);
+                            $checkParcelDrop->setPaymentInvoice($paymentInvoice);
+                            $checkParcelDrop->setParcelRef($item['code']);
+                            $checkParcelDrop->setDateDrop(new \DateTime($dateToday, new \DateTimeZone('Asia/Bangkok')));
+                            $checkParcelDrop->setStatus(0);
+
+                            $em->persist($merchantBilling);
+                            $em->persist($merchantBillingDetail);
+                            $em->persist($merchantBillingDelivery);
+                            $em->persist($checkParcelDrop);
+                            $em->flush();
+
+                            $output = array('status' => 'SUCCESS',
+                                'orderDate' => $dateToday,
+                                'parcelBillNo' => $parcelBillNo
+                            );
                         }
                     }
                 }
