@@ -63,6 +63,7 @@ class ParcelController extends AbstractController
         } else {
             $query.="member_id =:memberCode";
         }
+
         $selectMemberInfo = $conn->prepare($query);
         $selectMemberInfo->execute(array('merId'=>$data['merId'],'memberCode' => $memberCode));
 

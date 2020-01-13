@@ -381,8 +381,8 @@ class ParcelAgentApiController extends AbstractController
     )
     {
         date_default_timezone_set("Asia/Bangkok");
-        $dataRequest = json_decode($request->getContent(), true);
-        $data=$dataRequest[0];
+        $data = json_decode($request->getContent(), true);
+//        $data=$dataRequest[0];
 
         $dateToday = date("Y-m-d H:i:s", strtotime("now"));
         $dateExpire = date("Y-m-d H:i:s", strtotime("now" . "+3 Days"));
@@ -390,24 +390,24 @@ class ParcelAgentApiController extends AbstractController
         $tracks = [];
         $output = [];
 
-        if($data['owner'] =='' || $data['user_id']=='' || $data['parcelBillNo']=='' || $data['member_id']=='' || $data['merid']=='') {
-            file_put_contents('/usr/share/nginx/html/restful_api/public/log/logtest.txt', date("Y-m-d H:i:s").' ERROR_DATA_NOT_COMPLETE ', FILE_APPEND);
+        if($data['owner'] =='' || $data['userId']=='' || $data['parcelBillNo']=='' || $data['memberId']=='' || $data['merId']=='') {
+//            file_put_contents('/usr/share/nginx/html/restful_api/public/log/logtest.txt', date("Y-m-d H:i:s").' ERROR_DATA_NOT_COMPLETE ', FILE_APPEND);
             $output = array('status' => "ERROR_DATA_NOT_COMPLETE");
             return $this->json($output);
         } else if(count($data['barcodes'])==0) {
-            file_put_contents('/usr/share/nginx/html/restful_api/public/log/logtest.txt', date("Y-m-d H:i:s").' ERROR_NO_TRACKING_LIST ', FILE_APPEND);
+//            file_put_contents('/usr/share/nginx/html/restful_api/public/log/logtest.txt', date("Y-m-d H:i:s").' ERROR_NO_TRACKING_LIST ', FILE_APPEND);
             $output = array('status' => "ERROR_NO_TRACKING_LIST");
             return $this->json($output);
         } else {
-            $checkMerchantActive = $repMerchantConfig->findOneBy(['takeorderby' => $data['merid'], 'status' => 'active']);
+            $checkMerchantActive = $repMerchantConfig->findOneBy(['takeorderby' => $data['merId'], 'status' => 'active']);
             $checkBillNo=$repMerchantBilling->findOneBy(['parcelBillNo'=>$data['parcelBillNo']]);
 
             if ($checkMerchantActive == null) {
-                file_put_contents('/usr/share/nginx/html/restful_api/public/log/logtest.txt', date("Y-m-d H:i:s").' ERROR_MER_ID_NOT_ACTIVE ', FILE_APPEND);
+//                file_put_contents('/usr/share/nginx/html/restful_api/public/log/logtest.txt', date("Y-m-d H:i:s").' ERROR_MER_ID_NOT_ACTIVE ', FILE_APPEND);
                 $output = array('status' => 'ERROR_MER_ID_NOT_ACTIVE');
                 return $this->json($output);
             } else if($checkBillNo !== null) {
-                file_put_contents('/usr/share/nginx/html/restful_api/public/log/logtest.txt', date("Y-m-d H:i:s").' ERROR_DUPLICATED_BILL_NO ', FILE_APPEND);
+//                file_put_contents('/usr/share/nginx/html/restful_api/public/log/logtest.txt', date("Y-m-d H:i:s").' ERROR_DUPLICATED_BILL_NO ', FILE_APPEND);
                 $output = array('status' => 'ERROR_DUPLICATED_BILL_NO');
                 return $this->json($output);
             } else {
@@ -420,15 +420,15 @@ class ParcelAgentApiController extends AbstractController
                     $newTrackingArr = str_split($tracking);
 
                     if ((count($newTrackingArr) == 11) && (!preg_match($patternTracking11, $tracking))) {
-                        file_put_contents('/usr/share/nginx/html/restful_api/public/log/logtest.txt', date("Y-m-d H:i:s").' ERROR_TRACKING_WRONG_FORMAT ', FILE_APPEND);
+//                        file_put_contents('/usr/share/nginx/html/restful_api/public/log/logtest.txt', date("Y-m-d H:i:s").' ERROR_TRACKING_WRONG_FORMAT ', FILE_APPEND);
                         $output = array('status' => 'ERROR_TRACKING_WRONG_FORMAT');
                         return $this->json($output);
                     } elseif ((count($newTrackingArr) == 12) && (!preg_match($patternTracking12, $tracking))) {
-                        file_put_contents('/usr/share/nginx/html/restful_api/public/log/logtest.txt', date("Y-m-d H:i:s").' ERROR_TRACKING_WRONG_FORMAT ', FILE_APPEND);
+//                        file_put_contents('/usr/share/nginx/html/restful_api/public/log/logtest.txt', date("Y-m-d H:i:s").' ERROR_TRACKING_WRONG_FORMAT ', FILE_APPEND);
                         $output = array('status' => 'ERROR_TRACKING_WRONG_FORMAT');
                         return $this->json($output);
                     } elseif (($itemTracking['transportType'] == 'cod') && ($itemTracking['amount'] == 0)) {
-                        file_put_contents('/usr/share/nginx/html/restful_api/public/log/logtest.txt', date("Y-m-d H:i:s").' ERROR_WRONG_COD_VALUE ', FILE_APPEND);
+//                        file_put_contents('/usr/share/nginx/html/restful_api/public/log/logtest.txt', date("Y-m-d H:i:s").' ERROR_WRONG_COD_VALUE ', FILE_APPEND);
                         $output = array('status' => 'ERROR_WRONG_COD_VALUE');
                         return $this->json($output);
                     } else {
@@ -498,7 +498,7 @@ class ParcelAgentApiController extends AbstractController
                             $parcelSize = $lowerParcelSize;
                         }
 
-                        $parcelPriceSize = $repMerchantProduct->findParcelSizePrice($data['merid'], $productIdSize, $parcelSize);
+                        $parcelPriceSize = $repMerchantProduct->findParcelSizePrice($data['merId'], $productIdSize, $parcelSize);
                         if ($parcelPriceSize == null) {
                             $output = array('status' => 'ERROR_NO_PRODUCT');
                         } else {
@@ -508,7 +508,7 @@ class ParcelAgentApiController extends AbstractController
                             $conn=$em->getConnection();
                             $sql="SELECT MAX(geninvoice) as maxInvId FROM merchant_billing_geninv WHERE takeorderby=:merId";
                             $maxInvId = $conn->prepare($sql);
-                            $maxInvId->execute(array('merId' => $data['merid']));
+                            $maxInvId->execute(array('merId' => $data['merId']));
 
                             $maxId = json_decode($this->json($maxInvId)->getContent(), true);
 
@@ -519,13 +519,13 @@ class ParcelAgentApiController extends AbstractController
 
                             $newInvoice = new MerchantBillingGeninv();
                             $newInvoice->setDatestamp(new \DateTime("now", new \DateTimeZone('Asia/Bangkok')));
-                            $newInvoice->setTakeorderby($data['merid']);
+                            $newInvoice->setTakeorderby($data['merId']);
                             $newInvoice->setGeninvoice($invId);
                             $em->persist($newInvoice);
                             $em->flush();
                             $em->getConnection()->exec('UNLOCK TABLES;');
                             ////////////////////////////////GEN NEW INVOICE/////////////////////////////////////////////////
-                            $prefix = $repMerchantConfig->findBy(array('takeorderby' => $data['merid']));
+                            $prefix = $repMerchantConfig->findBy(array('takeorderby' => $data['merId']));
                             $padMaxId = str_pad($invId, 5, "0", STR_PAD_LEFT);
                             $paymentInvoice = $prefix[0]->getInvPrefix() . date("ymd") . $padMaxId;
                             ///////////////////////////////GEN RECORD ID////////////////////////////////////////////////////
@@ -533,11 +533,11 @@ class ParcelAgentApiController extends AbstractController
                             // $keystring = _generateRandomString();
                             $keystring = random_bytes(10);
                             $keystring = sha1($keystring . uniqid(true) . md5(date("ymdHisU"))) . rand(111, 999) . $mtime;
-                            $keystring = date("YmdHis") . $keystring . $data['merid'] . $data['user_id'];
+                            $keystring = date("YmdHis") . $keystring . $data['merId'] . $data['userId'];
                             /////////////////////////////////INSERT MERCHANT BILLING DATA///////////////////////////////////
                             $merchantBilling = new MerchantBilling();
-                            $merchantBilling->setTakeorderby($data['merid']);
-                            $merchantBilling->setAdminid($data['user_id']);
+                            $merchantBilling->setTakeorderby($data['merId']);
+                            $merchantBilling->setAdminid($data['userId']);
                             $merchantBilling->setPaymentInvoice($paymentInvoice);
                             $merchantBilling->setPaymentAmt($item['amount']);
                             $merchantBilling->setPaymentDiscount($item['amount']);
@@ -577,7 +577,7 @@ class ParcelAgentApiController extends AbstractController
                             $merchantBilling->setOrderremark('-');
                             $merchantBilling->setParcelRef($item['code']);
                             $merchantBilling->setParcelBillNo($parcelBillNo);
-                            $merchantBilling->setParcelMemberId($data['member_id']);
+                            $merchantBilling->setParcelMemberId($data['memberId']);
                             $merchantBilling->setBillingno(null);
                             $merchantBilling->setExtRecordId($keystring);
                             $merchantBilling->setPeakValue('');
@@ -594,11 +594,11 @@ class ParcelAgentApiController extends AbstractController
 
                             ///////////////////////////////////INSERT MERCHANT BILLING DETAIL DATA//////////////////////////////
                             $globalProduct = $repGlobalProduct->findBy(array('productid' => $parcelPriceSize[0]['pId']));
-                            $parcelMember = $repParcelMember->findBy(array('memberId' => $data['member_id']));
+                            $parcelMember = $repParcelMember->findBy(array('memberId' => $data['memberId']));
                             $globalProductImg = $repGlobalProductImg->findBy(array('productcode' => $parcelPriceSize[0]['pId']));
 
                             $merchantBillingDetail = new MerchantBillingDetail();
-                            $merchantBillingDetail->setTakeorderby($data['merid']);
+                            $merchantBillingDetail->setTakeorderby($data['merId']);
                             $merchantBillingDetail->setPaymentInvoice($paymentInvoice);
                             $merchantBillingDetail->setProductid($parcelPriceSize[0]['mId']);
                             $merchantBillingDetail->setGlobalProductid($parcelPriceSize[0]['pId']);
@@ -619,7 +619,7 @@ class ParcelAgentApiController extends AbstractController
                                 $merchantBillingDetail->setImgproductonbill($globalProductImg[0]->getThumbimg());
                             }
                             $merchantBillingDetail->setImgproductpathonbill(null);
-                            $merchantBillingDetail->setNoteremark($data['member_id'] . '-' . $parcelMember[0]->getAliasname() . '-' . $paymentInvoice);
+                            $merchantBillingDetail->setNoteremark($data['memberId'] . '-' . $parcelMember[0]->getAliasname() . '-' . $paymentInvoice);
                             $merchantBillingDetail->setCommissionset(null);
                             $merchantBillingDetail->setTimestamp(new \DateTime($dateToday, new \DateTimeZone('Asia/Bangkok')));
                             $merchantBillingDetail->setOwnerproduct(0);
@@ -627,9 +627,9 @@ class ParcelAgentApiController extends AbstractController
                             ///////////////////////////////////INSERT MERCHANT BILLING DELIVERY DATA////////////////////////////
                             $globalWarehouse = $repGlobalWarehouse->findBy(array('id' => $globalProduct[0]->getWarehouse()));
                             $merchantBillingDelivery = new MerchantBillingDelivery();
-                            $merchantBillingDelivery->setTakeorderby($data['merid']);
+                            $merchantBillingDelivery->setTakeorderby($data['merId']);
                             $merchantBillingDelivery->setPaymentInvoice($paymentInvoice);
-                            $merchantBillingDelivery->setPaymentSubInvoice($data['merid'] . '-' . $paymentInvoice . '-' . $globalProduct[0]->getWarehouse());
+                            $merchantBillingDelivery->setPaymentSubInvoice($data['merId'] . '-' . $paymentInvoice . '-' . $globalProduct[0]->getWarehouse());
                             $merchantBillingDelivery->setCodPrice($item['amount']);
                             $merchantBillingDelivery->setExpenseDiscount(0);
                             $merchantBillingDelivery->setGlobalWarehouse($globalWarehouse[0]->getWarehouseTier());
@@ -641,8 +641,8 @@ class ParcelAgentApiController extends AbstractController
                             $merchantBillingDelivery->setPrepareMailcode($item['code']);
                             ///////////////////////////////////INSERT FLAG TRACKING DATA////////////////////////////////////////
                             $checkParcelDrop = new CheckParcelDrop();
-                            $checkParcelDrop->setMerId($data['merid']);
-                            $checkParcelDrop->setAgentUserId($data['user_id']);
+                            $checkParcelDrop->setMerId($data['merId']);
+                            $checkParcelDrop->setAgentUserId($data['userId']);
                             $checkParcelDrop->setPaymentInvoice($paymentInvoice);
                             $checkParcelDrop->setParcelRef($item['code']);
                             $checkParcelDrop->setDateDrop(new \DateTime($dateToday, new \DateTimeZone('Asia/Bangkok')));
@@ -846,6 +846,7 @@ class ParcelAgentApiController extends AbstractController
         }
         return $this->json($output);
     }
+
 
     public
     function validatePID($pid)
