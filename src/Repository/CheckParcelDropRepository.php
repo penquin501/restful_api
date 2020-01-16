@@ -19,17 +19,18 @@ class CheckParcelDropRepository extends ServiceEntityRepository
         parent::__construct($registry, CheckParcelDrop::class);
     }
 
-    public function findRemainTracking($userId,$merId,$dateDrop)
+    public function findRemainTracking($status,$userId,$merId)
     {
         return $this->createQueryBuilder('cDrop')
             ->select('cDrop.parcelRef as tracking')
-            ->Where('cDrop.status = 0')
+            ->Where('cDrop.status = :status')
             ->andWhere('cDrop.merId = :merId')
             ->andWhere('cDrop.agentUserId = :agentUserId')
-            ->andWhere('cDrop.dateDrop >= :dateDrop')
+//            ->andWhere('cDrop.dateDrop = :dateDrop')
+            ->setParameter('status', $status)
             ->setParameter('merId', $merId)
             ->setParameter('agentUserId', $userId)
-            ->setParameter('dateDrop', $dateDrop)
+//            ->setParameter('dateDrop', $dateDrop)
             ->getQuery()
             ->getResult()
             ;

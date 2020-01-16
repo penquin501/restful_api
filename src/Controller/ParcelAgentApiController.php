@@ -805,48 +805,51 @@ class ParcelAgentApiController extends AbstractController
     function shopParcelDrop(Request $request,
                             EntityManagerInterface $em,
                             CheckParcelDropRepository $repCheckParcelDrop
-    )
-    {
+    ) {
         date_default_timezone_set("Asia/Bangkok");
         $dateToday = date("Y-m-d", strtotime("now"));
         $data = json_decode($request->getContent(), true);
 
         if($data['dateDrop']=='' || $data['agentUserId']=='' || $data['agentMerId']=='' || $data['shopMerId']==''){
             $output = ["status" => "ERROR_DATA_NOT_COMPLETE"];
+            return $this->json($output);
+        } else if(count($data['trackingList']) <= 0) {
+            $output = array("status" => "ERROR_NO_TRACKING_LIST");
+            return $this->json($output);
         } else {
-            $date = new \DateTime($data['dateDrop']);
+            $trackingWaitingShopScan = $repCheckParcelDrop->findRemainTracking(0,$data['agentUserId'], $data['agentMerId']);
 
-            $trackingWaitingShopScan = $repCheckParcelDrop->findRemainTracking($data['agentUserId'], $data['agentMerId'], $date);
-            if (count($data['trackingList']) <= 0) {
-                $output = array("status" => "ERROR_NOT_TRACKING_LIST");
+            if($trackingWaitingShopScan == null) {
+                $output = array("status" => "ERROR_NO_TRACKING_TO_SCAN");
+                return $this->json($output);
             } else {
+                $trackingNotfound=[];
+                $trackingFound=[];
                 foreach ($data['trackingList'] as $tracking) {
-
-                    $checkParcelTracking = $repCheckParcelDrop->findOneBy(array('parcelRef' => mb_strtoupper($tracking['tracking']),
-                        'merId' => $data['agentMerId']
-                    ));
-                    if ($checkParcelTracking == null) {
-                        $trackingNotfound[] = ["tracking" => mb_strtoupper($tracking['tracking'])];
-                        $output = array("status" => "ERROR_NO_TRACKING", "trackingList" => $trackingNotfound);
+                    $checkParcelTracking = $repCheckParcelDrop->findOneBy(array('parcelRef' => mb_strtoupper($tracking['tracking'])));
+                    if($checkParcelTracking == null){
+                        $trackingNotfound = ["tracking" => mb_strtoupper($tracking['tracking'])];
                     } else {
+                        $trackingFound=["tracking" => mb_strtoupper($tracking['tracking'])];
+
                         $checkParcelTracking->setDropMerId($data['shopMerId']);
                         $checkParcelTracking->setStatus(1);
                         $checkParcelTracking->setRecordDate(new \DateTime($dateToday, new \DateTimeZone('Asia/Bangkok')));
                         $em->flush();
-                        if ($trackingWaitingShopScan == null) {
-                            $output = array("status" => "SUCCESS");
-                        } else {
-                            $output = array("status" => "ERROR_REMAIN_TRACKING",
-                                "remainTracking" => $trackingWaitingShopScan
-                            );
-                        }
                     }
                 }
+                $trackingWaitingShopScan = $repCheckParcelDrop->findRemainTracking(0,$data['agentUserId'], $data['agentMerId']);
+                $output=[
+                    "status" => "SUCCESS",
+                    "listTrackingDrop"=>$trackingFound,
+                    "listTrackingNotFound"=>$trackingNotfound,
+                    "listTrackingRemain"=>$trackingWaitingShopScan,
+                ];
+                return $this->json($output);
             }
         }
-        return $this->json($output);
     }
-
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     public
     function validatePID($pid)
