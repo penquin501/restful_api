@@ -381,8 +381,8 @@ class ParcelAgentApiController extends AbstractController
     )
     {
         date_default_timezone_set("Asia/Bangkok");
-        $dataRequest = json_decode($request->getContent(), true);
-        $data=$dataRequest[0];
+        $data = json_decode($request->getContent(), true);
+//        $data=$dataRequest[0];
 
         $dateToday = date("Y-m-d H:i:s", strtotime("now"));
         $dateExpire = date("Y-m-d H:i:s", strtotime("now" . "+3 Days"));
