@@ -381,8 +381,8 @@ class ParcelAgentApiController extends AbstractController
     )
     {
         date_default_timezone_set("Asia/Bangkok");
-        $data = json_decode($request->getContent(), true);
-//        $data=$dataRequest[0];
+        $dataRequest = json_decode($request->getContent(), true);
+        $data=$dataRequest[0];
 
         $dateToday = date("Y-m-d H:i:s", strtotime("now"));
         $dateExpire = date("Y-m-d H:i:s", strtotime("now" . "+3 Days"));
@@ -499,6 +499,7 @@ class ParcelAgentApiController extends AbstractController
                         }
 
                         $parcelPriceSize = $repMerchantProduct->findParcelSizePrice($data['merId'], $productIdSize, $parcelSize);
+
                         if ($parcelPriceSize == null) {
                             $output = array('status' => 'ERROR_NO_PRODUCT');
                         } else {
@@ -680,7 +681,7 @@ class ParcelAgentApiController extends AbstractController
             $output = array("status" => "ERROR_DATA_NOT_COMPLETE");
         } else {
             $conn = $em->getConnection();
-            $query = "SELECT mb.parcel_ref as tracking,mb.orderdate as orderDate,mb.ordername as orderName,mb.ordertransport as productType, mb.payment_amt as codValue, mDetail.productname as productName,mDetail.delivery_fee as deliveryFee " .
+            $query = "SELECT mb.parcel_ref as tracking,mb.orderdate as orderDate,mb.ordername as orderName,mb.ordertransport as productType, mb.payment_amt as codValue, mDetail.productname as productName,mb.transportprice as transportPrice " .
                 "FROM merchant_billing mb " .
                 "JOIN merchant_billing_detail mDetail " .
                 "ON mb.takeorderby=mDetail.takeorderby AND mb.payment_invoice=mDetail.payment_invoice " .
@@ -692,8 +693,9 @@ class ParcelAgentApiController extends AbstractController
                 $output = array("status" => "ERROR_NOT_FOUND_BILLING");
             } else {
                 $merchantDetail = json_decode($this->json($merchantInfo)->getContent(), true);
-                foreach ($merchantInfo as $item) {
-                    $sumFee += $item['deliveryFee'];
+
+                foreach ($merchantDetail as $item) {
+                    $sumFee += $item['transportPrice'];
                 }
 
                 $output = array("status" => "SUCCESS",
