@@ -435,20 +435,37 @@ class ParcelAgentApiController extends AbstractController
                         $tracks[] = $itemTracking['code'];
                     }
                 }
+
+                $checkDupTrack=[];
                 if (count($tracks) > 0) {
                     foreach ($tracks as $track) {
-                        $checkParcelRef = $repMerchantBilling->count(array('parcelRef' => $track));
-                        if ($checkParcelRef > 0) {
+                        if (!array_key_exists($track, $checkDupTrack)) {
+                            $checkDupTrack[$track] = 1;
+                        } else {
+                            $checkDupTrack[$track] += 1;
+                        }
+                    }
+                    foreach ($checkDupTrack as $k => $v) {
+                        if($v>1){
                             $meet_require = false;
+                            $errorBB="ERROR_DUPLICATE_TRACKING_IN_RAW_DATA";
+                        } else {
+                            $checkParcelRef = $repMerchantBilling->count(array('parcelRef' => $track));
+                            if ($checkParcelRef > 0) {
+                                $meet_require = false;
+                                $errorBB="ERROR_DUPLICATE_TRACKING_IN_DB";
+                            }
                         }
                     }
                 } else {
                     $meet_require = false;
+                    $errorBB="ERROR_TRACKING_NOT_PASS";
                 }
 
                 if ($meet_require == false) {
 //                    file_put_contents('/usr/share/nginx/html/restful_api/public/log/logtest.txt', date("Y-m-d H:i:s").' ERROR_DUPLICATE_TRACKING ', FILE_APPEND);
-                    $output = array('status' => 'ERROR_DUPLICATE_TRACKING');
+//                    $output = array('status' => 'ERROR_DUPLICATE_TRACKING');
+                    $output = array('status' => $errorBB);
                     return $this->json($output);
 
                 } else {
@@ -683,8 +700,7 @@ class ParcelAgentApiController extends AbstractController
             $conn = $em->getConnection();
             $query = "SELECT mb.parcel_ref as tracking,mb.orderdate as orderDate,mb.ordername as orderName,mb.ordertransport as productType, mb.payment_amt as codValue, mDetail.productname as productName,mb.transportprice as transportPrice " .
                 "FROM merchant_billing mb " .
-                "JOIN merchant_billing_detail mDetail " .
-                "ON mb.takeorderby=mDetail.takeorderby AND mb.payment_invoice=mDetail.payment_invoice " .
+                "JOIN merchant_billing_detail mDetail ON mb.takeorderby=mDetail.takeorderby AND mb.payment_invoice=mDetail.payment_invoice " .
                 "WHERE mb.parcel_bill_no=:billNo";
             $merchantInfo = $conn->prepare($query);
             $merchantInfo->execute(array('billNo' => $data['billNo']));
