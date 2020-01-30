@@ -154,20 +154,34 @@ class ParcelController extends AbstractController
                 $tracks[] = $itemTracking['tracking'];
             }
         }
-        if(count($tracks)>0){
+        $checkDupTrack=[];
+        if (count($tracks) > 0) {
             foreach ($tracks as $track) {
-                $checkParcelRef = $repMerchantBilling->count(array('parcelRef' => $track));
-                if($checkParcelRef>0){
+                if (!array_key_exists($track, $checkDupTrack)) {
+                    $checkDupTrack[$track] = 1;
+                } else {
+                    $checkDupTrack[$track] += 1;
+                }
+            }
+            foreach ($checkDupTrack as $k => $v) {
+                if($v>1){
                     $meet_require = false;
+                    $errorCheck="ERROR_DUPLICATE_TRACKING_IN_RAW_DATA";
+                } else {
+                    $checkParcelRef = $repMerchantBilling->count(array('parcelRef' => $track));
+                    if ($checkParcelRef > 0) {
+                        $meet_require = false;
+                        $errorCheck="ERROR_DUPLICATE_TRACKING_IN_DB";
+                    }
                 }
             }
         } else {
             $meet_require = false;
+            $errorCheck="ERROR_TRACKING_NOT_PASS";
         }
 
         if ($meet_require == false) {
-            $output = array('status' => 'ERROR_TRACKING_DUPLICATED');
-
+            $output = array('status' => $errorCheck);
         } else {
             $output = array('status' => true);
         }

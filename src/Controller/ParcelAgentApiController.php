@@ -448,24 +448,24 @@ class ParcelAgentApiController extends AbstractController
                     foreach ($checkDupTrack as $k => $v) {
                         if($v>1){
                             $meet_require = false;
-                            $errorBB="ERROR_DUPLICATE_TRACKING_IN_RAW_DATA";
+                            $errorCheck="ERROR_DUPLICATE_TRACKING_IN_RAW_DATA";
                         } else {
                             $checkParcelRef = $repMerchantBilling->count(array('parcelRef' => $track));
                             if ($checkParcelRef > 0) {
                                 $meet_require = false;
-                                $errorBB="ERROR_DUPLICATE_TRACKING_IN_DB";
+                                $errorCheck="ERROR_DUPLICATE_TRACKING_IN_DB";
                             }
                         }
                     }
                 } else {
                     $meet_require = false;
-                    $errorBB="ERROR_TRACKING_NOT_PASS";
+                    $errorCheck="ERROR_TRACKING_NOT_PASS";
                 }
 
                 if ($meet_require == false) {
 //                    file_put_contents('/usr/share/nginx/html/restful_api/public/log/logtest.txt', date("Y-m-d H:i:s").' ERROR_DUPLICATE_TRACKING ', FILE_APPEND);
 //                    $output = array('status' => 'ERROR_DUPLICATE_TRACKING');
-                    $output = array('status' => $errorBB);
+                    $output = array('status' => $errorCheck);
                     return $this->json($output);
 
                 } else {
