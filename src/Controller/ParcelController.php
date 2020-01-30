@@ -22,9 +22,9 @@ class ParcelController extends AbstractController
             $output=['status'=>'ERROR_DATA_NOT_COMPLETE'];
         } else {
             $conn = $em->getConnection();
-            $query = "SELECT member_id,citizenid,firstname,lastname,aliasname,ref_address as address,phoneregis FROM parcel_member where merid=:branch_id";
+            $query = "SELECT member_id,citizenid,firstname,lastname,aliasname,ref_address as address,phoneregis FROM parcel_member WHERE merid=:branch_id AND status=:status";
             $listMember = $conn->prepare($query);
-            $listMember->execute(array('branch_id' => $data['branch_id']));
+            $listMember->execute(array('branch_id' => $data['branch_id'],'status'=>'active'));
 
             if($listMember->rowCount() == 0){
                 $output=['status'=>'ERROR_DATA_NOT_FOUND'];
@@ -53,7 +53,7 @@ class ParcelController extends AbstractController
         $resultIdCardCheck=$this->validatePID($data['member_code']);
 
         $conn = $em->getConnection();
-        $query = "SELECT member_id as member_code, merid as branch_id,firstname as first_name, lastname as last_name,phoneregis as phone, ref_address as address, bankacc as bank_account_no,bank_acc_name,bank_issue as bank_name ".
+        $query = "SELECT member_id as member_code, merid as branch_id,citizenId as citizen_Id,firstname as first_name, lastname as last_name,phoneregis as phone, ref_address as address, bankacc as bank_account_no,bank_acc_name,bank_issue as bank_name ".
             "FROM parcel_member WHERE merid=:merId AND ";
 
         if(count($splMemberCode)==13 && $resultIdCardCheck==true){
@@ -69,7 +69,7 @@ class ParcelController extends AbstractController
 
         if(count($splMemberCode)==13 && $resultIdCardCheck==true && $selectMemberInfo->rowCount()==0) {
             $conn = $em->getConnection();
-            $sql = "SELECT member_id as member_code, merid as branch_id,firstname as first_name, lastname as last_name,phoneregis as phone, ref_address as address, bankacc as bank_account_no,bank_acc_name,bank_issue as bank_name ".
+            $sql = "SELECT member_id as member_code, merid as branch_id,citizen_Id as citizen_id,firstname as first_name, lastname as last_name,phoneregis as phone, ref_address as address, bankacc as bank_account_no,bank_acc_name,bank_issue as bank_name ".
                 "FROM parcel_member WHERE merid=:merId AND member_id =:memberCode";
             $queryMemberInfo = $conn->prepare($sql);
             $queryMemberInfo->execute(array('merId'=>$data['merId'],'memberCode' => $memberCode));
@@ -81,6 +81,7 @@ class ParcelController extends AbstractController
                 $output = ['status' => 'SUCCESS',
                     'member_code' => $resultMemberInfo[0]['member_code'],
                     'branch_id' => $resultMemberInfo[0]['branch_id'],
+                    'citizen_id' => $resultMemberInfo[0]['citizen_id'],
                     'first_name' => $resultMemberInfo[0]['first_name'],
                     'last_name' => $resultMemberInfo[0]['last_name'],
                     'phone' => $resultMemberInfo[0]['phone'],
@@ -97,6 +98,7 @@ class ParcelController extends AbstractController
             $output = ['status' => 'SUCCESS',
                 'member_code' => $memberInfo[0]['member_code'],
                 'branch_id' => $memberInfo[0]['branch_id'],
+                'citizen_id' => $memberInfo[0]['citizen_id'],
                 'first_name' => $memberInfo[0]['first_name'],
                 'last_name' => $memberInfo[0]['last_name'],
                 'phone' => $memberInfo[0]['phone'],
@@ -114,7 +116,7 @@ class ParcelController extends AbstractController
     public function selectMemberInfo(Request $request, ParcelMemberRepository $repParcelMember)
     {
         $data = json_decode($request->getContent(), true);
-        $parcelMember=$repParcelMember->findOneBy(array('memberId'=>$data['member_code']));
+        $parcelMember=$repParcelMember->findOneBy(array('memberId'=>$data['member_code'],'status'=>'active'));
 
         if($parcelMember==null){
             $output=['status'=>'ERROR_MEMBER_NOT_FOUND'];
