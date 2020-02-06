@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Repository\MerchantBillingRepository;
 use App\Repository\ParcelMemberRepository;
 use App\Repository\LogImgParcelAgentRepository;
+use App\Repository\GlobalAuthenRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -133,62 +134,99 @@ class ParcelController extends AbstractController
      * @Route("/parcel/check/tracking/list/api", methods={"POST"})
      */
     public function checkTrackingInBilling(Request $request,
-                                           MerchantBillingRepository $repMerchantBilling
+                                           MerchantBillingRepository $repMerchantBilling,
+                                           ParcelMemberRepository $repParcelMember,
+                                           GlobalAuthenRepository $repGlobalAuthen
     )  {
         $data = json_decode($request->getContent(), true);
         $meet_require = true;
         $tracks = [];
-        foreach ($data['trackingList'] as $itemTracking) {
-            $patternTracking11 = '/^[T|t][D|d][Z|z]+[0-9]{8}?$/i';
-            $patternTracking12 = '/^[T|t][D|d][Z|z]+[0-9]{8}[A-Z]?$/i';
-            $tracking = trim($itemTracking['tracking']);
-
-            if((mb_strlen($tracking, 'UTF-8')!=11) && (mb_strlen($tracking, 'UTF-8')!=12)){
-                $output = array('status' => 'ERROR_TRACKING_WRONG_FORMAT');
-                return $this->json($output);
-            } elseif ((mb_strlen($tracking, 'UTF-8')==11) && !(preg_match($patternTracking11, $tracking))) {
-                $output = array('status' => 'ERROR_TRACKING_WRONG_FORMAT');
-                return $this->json($output);
-            } elseif ((mb_strlen($tracking, 'UTF-8')==12) && (!preg_match($patternTracking12, $tracking))) {
-                $output = array('status' => 'ERROR_TRACKING_WRONG_FORMAT');
+        if($data['member_code']=="" || $data['member_code']==null){
+            $output = array('status' => 'ERROR_NO_MEMBER_CODE');
+            return $this->json($output);
+        } else if ($data['user_id']=="" || $data['user_id']==null){
+            $output = array('status' => 'ERROR_NO_USER_ID');
+            return $this->json($output);
+        } else if ($data['branch_id']=="" || $data['branch_id']==null){
+            $output = array('status' => 'ERROR_NO_BRANCH_ID');
+            return $this->json($output);
+        } else if ($data['carrier_id']=="" || $data['carrier_id']==null){
+            $output = array('status' => 'ERROR_NO_CARRIER_ID');
+            return $this->json($output);
+        } else if (count($data['trackingList'])==0){
+            $output = array('status' => 'ERROR_NO_TRACKING_LIST');
+            return $this->json($output);
+        } else {
+            $resultIdCardCheck=$this->validatePID($data['carrier_id']);
+            if($resultIdCardCheck!== true){
+                $output = array('status' => 'ERROR_WRONG_CARRIER_ID');
                 return $this->json($output);
             } else {
-                $tracks[] = $itemTracking['tracking'];
-            }
-        }
-        $checkDupTrack=[];
-        if (count($tracks) > 0) {
-            foreach ($tracks as $track) {
-                if (!array_key_exists($track, $checkDupTrack)) {
-                    $checkDupTrack[$track] = 1;
+                $checkMember=$repParcelMember->findOneBy(['memberId'=>$data['member_code'],'status'=>'active']);
+                if($checkMember==null){
+                    $output = array('status' => 'ERROR_WRONG_MEMBER_CODE');
+                    return $this->json($output);
                 } else {
-                    $checkDupTrack[$track] += 1;
-                }
-            }
-            foreach ($checkDupTrack as $k => $v) {
-                if($v>1){
-                    $meet_require = false;
-                    $errorCheck="ERROR_DUPLICATE_TRACKING_IN_RAW_DATA";
-                } else {
-                    $checkParcelRef = $repMerchantBilling->count(array('parcelRef' => $track));
-                    if ($checkParcelRef > 0) {
-                        $meet_require = false;
-                        $errorCheck="ERROR_DUPLICATE_TRACKING_IN_DB";
+                    $checkUserId=$repGlobalAuthen->findOneBy(['id'=>$data['user_id'],'merid'=>$data['branch_id'],'status'=>'active']);
+                    if($checkUserId==null){
+                        $output = array('status' => 'ERROR_WRONG_USER_ID');
+                        return $this->json($output);
+                    } else {
+                        foreach ($data['trackingList'] as $itemTracking) {
+                            $patternTracking11 = '/^[T|t][D|d][Z|z]+[0-9]{8}?$/i';
+                            $patternTracking12 = '/^[T|t][D|d][Z|z]+[0-9]{8}[A-Z]?$/i';
+                            $tracking = trim($itemTracking['tracking']);
+
+                            if ((mb_strlen($tracking, 'UTF-8') != 11) && (mb_strlen($tracking, 'UTF-8') != 12)) {
+                                $output = array('status' => 'ERROR_TRACKING_WRONG_FORMAT');
+                                return $this->json($output);
+                            } elseif ((mb_strlen($tracking, 'UTF-8') == 11) && !(preg_match($patternTracking11, $tracking))) {
+                                $output = array('status' => 'ERROR_TRACKING_WRONG_FORMAT');
+                                return $this->json($output);
+                            } elseif ((mb_strlen($tracking, 'UTF-8') == 12) && (!preg_match($patternTracking12, $tracking))) {
+                                $output = array('status' => 'ERROR_TRACKING_WRONG_FORMAT');
+                                return $this->json($output);
+                            } else {
+                                $tracks[] = $itemTracking['tracking'];
+                            }
+                        }
+                        $checkDupTrack = [];
+                        if (count($tracks) > 0) {
+                            foreach ($tracks as $track) {
+                                if (!array_key_exists($track, $checkDupTrack)) {
+                                    $checkDupTrack[$track] = 1;
+                                } else {
+                                    $checkDupTrack[$track] += 1;
+                                }
+                            }
+                            foreach ($checkDupTrack as $k => $v) {
+                                if ($v > 1) {
+                                    $meet_require = false;
+                                    $errorCheck = "ERROR_DUPLICATE_TRACKING_IN_RAW_DATA";
+                                } else {
+                                    $checkParcelRef = $repMerchantBilling->count(array('parcelRef' => $track));
+                                    if ($checkParcelRef > 0) {
+                                        $meet_require = false;
+                                        $errorCheck = "ERROR_DUPLICATE_TRACKING_IN_DB";
+                                    }
+                                }
+                            }
+                        } else {
+                            $meet_require = false;
+                            $errorCheck = "ERROR_TRACKING_NOT_PASS";
+                        }
+
+                        if ($meet_require == false) {
+                            $output = array('status' => $errorCheck);
+                        } else {
+                            $output = array('status' => true);
+                        }
+
+                        return $this->json($output);
                     }
                 }
             }
-        } else {
-            $meet_require = false;
-            $errorCheck="ERROR_TRACKING_NOT_PASS";
         }
-
-        if ($meet_require == false) {
-            $output = array('status' => $errorCheck);
-        } else {
-            $output = array('status' => true);
-        }
-
-        return $this->json($output);
     }
 
     /**
