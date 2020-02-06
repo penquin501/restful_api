@@ -141,6 +141,70 @@ class ParcelController extends AbstractController
         $data = json_decode($request->getContent(), true);
         $meet_require = true;
         $tracks = [];
+        foreach ($data['trackingList'] as $itemTracking) {
+            $patternTracking11 = '/^[T|t][D|d][Z|z]+[0-9]{8}?$/i';
+            $patternTracking12 = '/^[T|t][D|d][Z|z]+[0-9]{8}[A-Z]?$/i';
+            $tracking = trim($itemTracking['tracking']);
+
+            if ((mb_strlen($tracking, 'UTF-8') != 11) && (mb_strlen($tracking, 'UTF-8') != 12)) {
+                $output = array('status' => 'ERROR_TRACKING_WRONG_FORMAT');
+                return $this->json($output);
+            } elseif ((mb_strlen($tracking, 'UTF-8') == 11) && !(preg_match($patternTracking11, $tracking))) {
+                $output = array('status' => 'ERROR_TRACKING_WRONG_FORMAT');
+                return $this->json($output);
+            } elseif ((mb_strlen($tracking, 'UTF-8') == 12) && (!preg_match($patternTracking12, $tracking))) {
+                $output = array('status' => 'ERROR_TRACKING_WRONG_FORMAT');
+                return $this->json($output);
+            } else {
+                $tracks[] = $itemTracking['tracking'];
+            }
+        }
+        $checkDupTrack = [];
+        if (count($tracks) > 0) {
+            foreach ($tracks as $track) {
+                if (!array_key_exists($track, $checkDupTrack)) {
+                    $checkDupTrack[$track] = 1;
+                } else {
+                    $checkDupTrack[$track] += 1;
+                }
+            }
+            foreach ($checkDupTrack as $k => $v) {
+                if ($v > 1) {
+                    $meet_require = false;
+                    $errorCheck = "ERROR_DUPLICATE_TRACKING_IN_RAW_DATA";
+                } else {
+                    $checkParcelRef = $repMerchantBilling->count(array('parcelRef' => $track));
+                    if ($checkParcelRef > 0) {
+                        $meet_require = false;
+                        $errorCheck = "ERROR_DUPLICATE_TRACKING_IN_DB";
+                    }
+                }
+            }
+        } else {
+            $meet_require = false;
+            $errorCheck = "ERROR_TRACKING_NOT_PASS";
+        }
+
+        if ($meet_require == false) {
+            $output = array('status' => $errorCheck);
+        } else {
+            $output = array('status' => true);
+        }
+
+        return $this->json($output);
+    }
+
+    /**
+     * @Route("/parcel/validate/tracking/api", methods={"POST"})
+     */
+    public function checkValidateTracking(Request $request,
+                     MerchantBillingRepository $repMerchantBilling,
+                     ParcelMemberRepository $repParcelMember,
+                     GlobalAuthenRepository $repGlobalAuthen
+    )  {
+        $data = json_decode($request->getContent(), true);
+        $meet_require = true;
+        $tracks = [];
         if($data['member_code']=="" || $data['member_code']==null){
             $output = array('status' => 'ERROR_NO_MEMBER_CODE');
             return $this->json($output);
