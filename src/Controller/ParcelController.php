@@ -54,7 +54,7 @@ class ParcelController extends AbstractController
         $resultIdCardCheck=$this->validatePID($data['member_code']);
 
         $conn = $em->getConnection();
-        $query = "SELECT member_id as member_code, merid as branch_id,citizenId as citizen_Id,firstname as first_name, lastname as last_name,phoneregis as phone, ref_address as address, bankacc as bank_account_no,bank_acc_name,bank_issue as bank_name ".
+        $query = "SELECT member_id as member_code, merid as branch_id,citizenid as citizen_Id,firstname as first_name, lastname as last_name,phoneregis as phone, ref_address as address, bankacc as bank_account_no,bank_acc_name,bank_issue as bank_name ".
             "FROM parcel_member WHERE merid=:merId AND ";
 
         if(count($splMemberCode)==13 && $resultIdCardCheck==true){
@@ -70,7 +70,7 @@ class ParcelController extends AbstractController
 
         if(count($splMemberCode)==13 && $resultIdCardCheck==true && $selectMemberInfo->rowCount()==0) {
             $conn = $em->getConnection();
-            $sql = "SELECT member_id as member_code, merid as branch_id,citizen_Id as citizen_id,firstname as first_name, lastname as last_name,phoneregis as phone, ref_address as address, bankacc as bank_account_no,bank_acc_name,bank_issue as bank_name ".
+            $sql = "SELECT member_id as member_code, merid as branch_id,citizenid as citizen_id,firstname as first_name, lastname as last_name,phoneregis as phone, ref_address as address, bankacc as bank_account_no,bank_acc_name,bank_issue as bank_name ".
                 "FROM parcel_member WHERE merid=:merId AND member_id =:memberCode";
             $queryMemberInfo = $conn->prepare($sql);
             $queryMemberInfo->execute(array('merId'=>$data['merId'],'memberCode' => $memberCode));
