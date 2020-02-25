@@ -123,7 +123,7 @@ class ParcelController extends AbstractController
             $output=['status'=>'ERROR_MEMBER_NOT_FOUND'];
         } else {
             $output=['status'=>'SUCCESS',
-                'memberInfo'=>$parcelMember
+                'member_code'=>[$parcelMember]
                 ];
         }
 
