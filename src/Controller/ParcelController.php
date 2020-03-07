@@ -19,19 +19,19 @@ class ParcelController extends AbstractController
     public function selectParcelMember(Request $request, ParcelMemberRepository $repParcelMember, EntityManagerInterface $em)
     {
         $data = json_decode($request->getContent(), true);
-        if($data['branch_id']==''){
-            $output=['status'=>'ERROR_DATA_NOT_COMPLETE'];
+        if ($data['branch_id'] == '') {
+            $output = ['status' => 'ERROR_DATA_NOT_COMPLETE'];
         } else {
             $conn = $em->getConnection();
             $query = "SELECT member_id,citizenid,firstname,lastname,aliasname,ref_address as address,phoneregis FROM parcel_member WHERE merid=:branch_id AND status=:status";
             $listMember = $conn->prepare($query);
-            $listMember->execute(array('branch_id' => $data['branch_id'],'status'=>'active'));
+            $listMember->execute(array('branch_id' => $data['branch_id'], 'status' => 'active'));
 
-            if($listMember->rowCount() == 0){
-                $output=['status'=>'ERROR_DATA_NOT_FOUND'];
+            if ($listMember->rowCount() == 0) {
+                $output = ['status' => 'ERROR_DATA_NOT_FOUND'];
             } else {
-                $output=['status'=>'SUCCESS',
-                    'listMember'=>$listMember];
+                $output = ['status' => 'SUCCESS',
+                    'listMember' => $listMember];
             }
         }
 
@@ -51,32 +51,32 @@ class ParcelController extends AbstractController
         $memberCode = trim($data['member_code']);
         $splMemberCode = str_split($memberCode);
 
-        $resultIdCardCheck=$this->validatePID($data['member_code']);
+        $resultIdCardCheck = $this->validatePID($data['member_code']);
 
         $conn = $em->getConnection();
-        $query = "SELECT member_id as member_code, merid as branch_id,citizenid as citizen_Id,firstname as first_name, lastname as last_name,phoneregis as phone, ref_address as address, bankacc as bank_account_no,bank_acc_name,bank_issue as bank_name ".
+        $query = "SELECT member_id as member_code, merid as branch_id,citizenid as citizen_Id,firstname as first_name, lastname as last_name,phoneregis as phone, ref_address as address, bankacc as bank_account_no,bank_acc_name,bank_issue as bank_name " .
             "FROM parcel_member WHERE merid=:merId AND ";
 
-        if(count($splMemberCode)==13 && $resultIdCardCheck==true){
-            $query.="citizenid =:memberCode";
-        } else if (count($splMemberCode)==11 && preg_match($patternPhone,$memberCode)){
-            $query.="phoneregis =:memberCode";
+        if (count($splMemberCode) == 13 && $resultIdCardCheck == true) {
+            $query .= "citizenid =:memberCode";
+        } else if (count($splMemberCode) == 11 && preg_match($patternPhone, $memberCode)) {
+            $query .= "phoneregis =:memberCode";
         } else {
-            $query.="member_id =:memberCode";
+            $query .= "member_id =:memberCode";
         }
 
         $selectMemberInfo = $conn->prepare($query);
-        $selectMemberInfo->execute(array('merId'=>$data['merId'],'memberCode' => $memberCode));
+        $selectMemberInfo->execute(array('merId' => $data['merId'], 'memberCode' => $memberCode));
 
-        if(count($splMemberCode)==13 && $resultIdCardCheck==true && $selectMemberInfo->rowCount()==0) {
+        if (count($splMemberCode) == 13 && $resultIdCardCheck == true && $selectMemberInfo->rowCount() == 0) {
             $conn = $em->getConnection();
-            $sql = "SELECT member_id as member_code, merid as branch_id,citizenid as citizen_id,firstname as first_name, lastname as last_name,phoneregis as phone, ref_address as address, bankacc as bank_account_no,bank_acc_name,bank_issue as bank_name ".
+            $sql = "SELECT member_id as member_code, merid as branch_id,citizenid as citizen_id,firstname as first_name, lastname as last_name,phoneregis as phone, ref_address as address, bankacc as bank_account_no,bank_acc_name,bank_issue as bank_name " .
                 "FROM parcel_member WHERE merid=:merId AND member_id =:memberCode";
             $queryMemberInfo = $conn->prepare($sql);
-            $queryMemberInfo->execute(array('merId'=>$data['merId'],'memberCode' => $memberCode));
+            $queryMemberInfo->execute(array('merId' => $data['merId'], 'memberCode' => $memberCode));
 
-            if($queryMemberInfo->rowCount()==0){
-                $output=['status'=>'ERROR_NOT_FOUND'];
+            if ($queryMemberInfo->rowCount() == 0) {
+                $output = ['status' => 'ERROR_NOT_FOUND'];
             } else {
                 $resultMemberInfo = json_decode($this->json($queryMemberInfo)->getContent(), true);
                 $output = ['status' => 'SUCCESS',
@@ -92,8 +92,8 @@ class ParcelController extends AbstractController
                     'bank_name' => $resultMemberInfo[0]['bank_name']
                 ];
             }
-        } else if($selectMemberInfo->rowCount()==0){
-            $output=['status'=>'ERROR_NOT_FOUND'];
+        } else if ($selectMemberInfo->rowCount() == 0) {
+            $output = ['status' => 'ERROR_NOT_FOUND'];
         } else {
             $memberInfo = json_decode($this->json($selectMemberInfo)->getContent(), true);
             $output = ['status' => 'SUCCESS',
@@ -111,20 +111,21 @@ class ParcelController extends AbstractController
         }
         return $this->json($output);
     }
+
     /**
      * @Route("/parcel/select/member/api", methods={"POST"})
      */
     public function selectMemberInfo(Request $request, ParcelMemberRepository $repParcelMember)
     {
         $data = json_decode($request->getContent(), true);
-        $parcelMember=$repParcelMember->findOneBy(array('memberId'=>$data['member_code'],'status'=>'active'));
+        $parcelMember = $repParcelMember->findOneBy(array('memberId' => $data['member_code'], 'status' => 'active'));
 
-        if($parcelMember==null){
-            $output=['status'=>'ERROR_MEMBER_NOT_FOUND'];
+        if ($parcelMember == null) {
+            $output = ['status' => 'ERROR_MEMBER_NOT_FOUND'];
         } else {
-            $output=['status'=>'SUCCESS',
-                'memberInfo'=>$parcelMember
-                ];
+            $output = ['status' => 'SUCCESS',
+                'memberInfo' => $parcelMember
+            ];
         }
 
         return $this->json($output);
@@ -137,7 +138,8 @@ class ParcelController extends AbstractController
                                            MerchantBillingRepository $repMerchantBilling,
                                            ParcelMemberRepository $repParcelMember,
                                            GlobalAuthenRepository $repGlobalAuthen
-    )  {
+    )
+    {
         $data = json_decode($request->getContent(), true);
         $meet_require = true;
         $tracks = [];
@@ -198,41 +200,42 @@ class ParcelController extends AbstractController
      * @Route("/parcel/validate/tracking/api", methods={"POST"})
      */
     public function checkValidateTracking(Request $request,
-                     MerchantBillingRepository $repMerchantBilling,
-                     ParcelMemberRepository $repParcelMember,
-                     GlobalAuthenRepository $repGlobalAuthen
-    )  {
+                                          MerchantBillingRepository $repMerchantBilling,
+                                          ParcelMemberRepository $repParcelMember,
+                                          GlobalAuthenRepository $repGlobalAuthen
+    )
+    {
         $data = json_decode($request->getContent(), true);
         $meet_require = true;
         $tracks = [];
-        if($data['member_code']=="" || $data['member_code']==null){
+        if ($data['member_code'] == "" || $data['member_code'] == null) {
             $output = array('status' => 'ERROR_NO_MEMBER_CODE');
             return $this->json($output);
-        } else if ($data['user_id']=="" || $data['user_id']==null){
+        } else if ($data['user_id'] == "" || $data['user_id'] == null) {
             $output = array('status' => 'ERROR_NO_USER_ID');
             return $this->json($output);
-        } else if ($data['branch_id']=="" || $data['branch_id']==null){
+        } else if ($data['branch_id'] == "" || $data['branch_id'] == null) {
             $output = array('status' => 'ERROR_NO_BRANCH_ID');
             return $this->json($output);
-        } else if ($data['carrier_id']=="" || $data['carrier_id']==null){
+        } else if ($data['carrier_id'] == "" || $data['carrier_id'] == null) {
             $output = array('status' => 'ERROR_NO_CARRIER_ID');
             return $this->json($output);
-        } else if (count($data['trackingList'])==0){
+        } else if (count($data['trackingList']) == 0) {
             $output = array('status' => 'ERROR_NO_TRACKING_LIST');
             return $this->json($output);
         } else {
-            $resultIdCardCheck=$this->validatePID($data['carrier_id']);
-            if($resultIdCardCheck!== true){
+            $resultIdCardCheck = $this->validatePID($data['carrier_id']);
+            if ($resultIdCardCheck !== true) {
                 $output = array('status' => 'ERROR_WRONG_CARRIER_ID');
                 return $this->json($output);
             } else {
-                $checkMember=$repParcelMember->findOneBy(['memberId'=>$data['member_code'],'status'=>'active']);
-                if($checkMember==null){
+                $checkMember = $repParcelMember->findOneBy(['memberId' => $data['member_code'], 'status' => 'active']);
+                if ($checkMember == null) {
                     $output = array('status' => 'ERROR_WRONG_MEMBER_CODE');
                     return $this->json($output);
                 } else {
-                    $checkUserId=$repGlobalAuthen->findOneBy(['id'=>$data['user_id'],'merid'=>$data['branch_id'],'status'=>'active']);
-                    if($checkUserId==null){
+                    $checkUserId = $repGlobalAuthen->findOneBy(['id' => $data['user_id'], 'merid' => $data['branch_id'], 'status' => 'active']);
+                    if ($checkUserId == null) {
                         $output = array('status' => 'ERROR_WRONG_USER_ID');
                         return $this->json($output);
                     } else {
@@ -298,24 +301,25 @@ class ParcelController extends AbstractController
      */
     public function selectTaxBill(Request $request,
                                   EntityManagerInterface $em
-    )  {
+    )
+    {
         $data = json_decode($request->getContent(), true);
 
-        if($data['bill_no']==""){
-            $output=['status'=>'ERROR_DATA_NOT_COMPLETE'];
+        if ($data['bill_no'] == "") {
+            $output = ['status' => 'ERROR_DATA_NOT_COMPLETE'];
         } else {
             $conn = $em->getConnection();
             $query = "SELECT peak_url_receipt_webview FROM merchant_billing WHERE parcel_bill_no = :bill_no GROUP BY parcel_bill_no LIMIT 0, 1";
             $queryTaxBill = $conn->prepare($query);
             $queryTaxBill->execute(array('bill_no' => $data['bill_no']));
 
-            if($queryTaxBill->rowCount() == 0){
-                $output=['status'=>'ERROR_NO_TAX_BILL'];
+            if ($queryTaxBill->rowCount() == 0) {
+                $output = ['status' => 'ERROR_NO_TAX_BILL'];
             } else {
                 $taxBillUrl = json_decode($this->json($queryTaxBill)->getContent(), true);
 
-                $output=['status'=>'SUCCESS',
-                    'peak_url_receipt_webview'=>$taxBillUrl[0]['peak_url_receipt_webview']];
+                $output = ['status' => 'SUCCESS',
+                    'peak_url_receipt_webview' => $taxBillUrl[0]['peak_url_receipt_webview']];
             }
         }
 
@@ -323,23 +327,75 @@ class ParcelController extends AbstractController
     }
 
     /**
+     * @Route("/parcel/list/bill/data/api", methods={"POST"})
+     */
+    public function selectBillData(Request $request,
+                                   EntityManagerInterface $em,
+                                   MerchantBillingRepository $repMerchantBilling,
+                                   ParcelMemberRepository $repParcelMember
+    )
+    {
+        $data = json_decode($request->getContent(), true);
+
+        if (count($data) == 0) {
+            $output = ['status' => 'ERROR_DATA_NOT_COMPLETE'];
+            return $this->json($output);
+        } else {
+            foreach ($data as $item) {
+
+                $tax = $repMerchantBilling->findOneBy(['parcelBillNo' => $item['billing_no']]);
+
+                if ($tax == null) {
+                    $taxLink = "";
+                } else {
+                    $taxLink = $tax->getPeakUrlReceiptWebview();
+                }
+                $member = $repParcelMember->findOneBy(['memberId' => $item['member_code']]);
+
+                if ($member == null) {
+                    $firstName = "";
+                    $lastName = "";
+                    $aliasName = "";
+                } else {
+                    $firstName = $member->getFirstname();
+                    $lastName = $member->getLastname();
+                    $aliasName = $member->getAliasname();
+                }
+
+                $output = ['taxLink' => $taxLink,
+                    'firstname' => $firstName,
+                    'lastname' => $lastName,
+                    'aliasname' => $aliasName,
+                    'bill_no' => $item['billing_no'],
+                    'timestamp' => $item['timestamp'],
+                    'billing_date' => $item['billing_date']
+                ];
+                $arrr[]=$output;
+            }
+            $output = ['status' => $arrr];
+            return $this->json($output);
+        }
+    }
+
+    /**
      * @Route("/parcel/select/img/url/api", methods={"POST"})
      */
     public function selectImgUrl(Request $request,
                                  LogImgParcelAgentRepository $repLogImg
-    )  {
+    )
+    {
         $data = json_decode($request->getContent(), true);
 
-        if($data['member_code']=='' || $data['source']==''){
-            $output=['status'=>'ERROR_DATA_NOT_COMPLETE'];
+        if ($data['member_code'] == '' || $data['source'] == '') {
+            $output = ['status' => 'ERROR_DATA_NOT_COMPLETE'];
         } else {
-            $urlImg=$repLogImg->findBy(array('memberId'=>$data['member_code'],'source'=>$data['source']));
-            if($urlImg==null){
-                $output=['status'=>'ERROR_NO_DATA_IMG'];
+            $urlImg = $repLogImg->findBy(array('memberId' => $data['member_code'], 'source' => $data['source']));
+            if ($urlImg == null) {
+                $output = ['status' => 'ERROR_NO_DATA_IMG'];
             } else {
-                $output=['status'=>'SUCCESS',
-                         'memberImgIng'=>['imgUrlCitizen'=>$urlImg[0]->getImgUrlCitizen(),
-                         'imgUrlBank'=>$urlImg[0]->getImgUrlBank()
+                $output = ['status' => 'SUCCESS',
+                    'memberImgIng' => ['imgUrlCitizen' => $urlImg[0]->getImgUrlCitizen(),
+                        'imgUrlBank' => $urlImg[0]->getImgUrlBank()
 
                     ]
                 ];
@@ -347,28 +403,30 @@ class ParcelController extends AbstractController
         }
         return $this->json($output);
     }
-    public function validatePID($pid){
-        if(preg_match("/^(\d)(\d)(\d)(\d)(\d)(\d)(\d)(\d)(\d)(\d)(\d)(\d)(\d)$/", $pid, $matches)){ //ใช้ preg_match
-            if(strlen($pid) != 13){
+
+    public function validatePID($pid)
+    {
+        if (preg_match("/^(\d)(\d)(\d)(\d)(\d)(\d)(\d)(\d)(\d)(\d)(\d)(\d)(\d)$/", $pid, $matches)) { //ใช้ preg_match
+            if (strlen($pid) != 13) {
                 $returncheck = false;
-            }else{
+            } else {
                 $rev = strrev($pid); // reverse string ขั้นที่ 0 เตรียมตัว
                 $total = 0;
-                for($i=1;$i<13;$i++){ // ขั้นตอนที่ 1 - เอาเลข 12 หลักมา เขียนแยกหลักกันก่อน
-                    $mul = $i +1;
-                    $count = $rev[$i]*$mul; // ขั้นตอนที่ 2 - เอาเลข 12 หลักนั้นมา คูณเข้ากับเลขประจำหลักของมัน
+                for ($i = 1; $i < 13; $i++) { // ขั้นตอนที่ 1 - เอาเลข 12 หลักมา เขียนแยกหลักกันก่อน
+                    $mul = $i + 1;
+                    $count = $rev[$i] * $mul; // ขั้นตอนที่ 2 - เอาเลข 12 หลักนั้นมา คูณเข้ากับเลขประจำหลักของมัน
                     $total = $total + $count; // ขั้นตอนที่ 3 - เอาผลคูณทั้ง 12 ตัวมา บวกกันทั้งหมด
                 }
                 $mod = $total % 11; //ขั้นตอนที่ 4 - เอาเลขที่ได้จากขั้นตอนที่ 3 มา mod 11 (หารเอาเศษ)
                 $sub = 11 - $mod; //ขั้นตอนที่ 5 - เอา 11 ตั้ง ลบออกด้วย เลขที่ได้จากขั้นตอนที่ 4
                 $check_digit = $sub % 10; //ถ้าเกิด ลบแล้วได้ออกมาเป็นเลข 2 หลัก ให้เอาเลขในหลักหน่วยมาเป็น Check Digit
-                if($rev[0] == $check_digit){  // ตรวจสอบ ค่าที่ได้ กับ เลขตัวสุดท้ายของ บัตรประจำตัวประชาชน
+                if ($rev[0] == $check_digit) {  // ตรวจสอบ ค่าที่ได้ กับ เลขตัวสุดท้ายของ บัตรประจำตัวประชาชน
                     $returncheck = true; /// ถ้า ตรงกัน แสดงว่าถูก
-                }else{
+                } else {
                     $returncheck = false; // ไม่ตรงกันแสดงว่าผิด
                 }
             }
-        }else{
+        } else {
             $returncheck = false;
         }
         return $returncheck;
