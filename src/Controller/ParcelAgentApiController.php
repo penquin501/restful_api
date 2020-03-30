@@ -698,9 +698,10 @@ class ParcelAgentApiController extends AbstractController
             $output = array("status" => "ERROR_DATA_NOT_COMPLETE");
         } else {
             $conn = $em->getConnection();
-            $query = "SELECT mb.parcel_ref as tracking,mb.orderdate as orderDate,mb.ordername as orderName,mb.ordertransport as productType, mb.payment_amt as codValue, mDetail.productname as productName,mb.transportprice as transportPrice " .
+            $query = "SELECT concat(mem.firstname,' ',mem.lastname) as senderName,mb.parcel_ref as tracking,mb.orderdate as orderDate,mb.ordername as orderName,mb.ordertransport as productType, mb.payment_amt as codValue, mDetail.productname as productName,mb.transportprice as transportPrice " .
                 "FROM merchant_billing mb " .
-                "JOIN merchant_billing_detail mDetail ON mb.takeorderby=mDetail.takeorderby AND mb.payment_invoice=mDetail.payment_invoice " .
+                "LEFT JOIN merchant_billing_detail mDetail ON mb.takeorderby=mDetail.takeorderby AND mb.payment_invoice=mDetail.payment_invoice " .
+                "LEFT JOIN parcel_member mem ON mb.parcel_member_id=mem.member_id " .
                 "WHERE mb.parcel_bill_no=:billNo";
             $merchantInfo = $conn->prepare($query);
             $merchantInfo->execute(array('billNo' => $data['billNo']));
