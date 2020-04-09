@@ -480,28 +480,28 @@ class ParcelAgentApiController extends AbstractController
 
                         if ($item['transportType'] == 'normal' && $item['zipCode'] == '13180' && $item['provinceId'] == '4') {
                             //normal-ปทุมธานี
-                            $productIdSize = [17945, 171313, 17946, 17947, 17948, 17949, 17950, 17951, 17952];
+                            $productIdSize = [17945, 17946, 17947, 17948, 17949, 17950, 17951, 17952,171313,172358,172362,172374,172378,172382,172397];
                         } elseif ($item['transportType'] == 'normal' && $item['zipCode'] == '13180' && $item['provinceId'] == '5') {
                             //normal-อยุธยา
-                            $productIdSize = [17958, 171314, 17959, 17960, 17961, 17962, 17963, 17964, 17965];
+                            $productIdSize = [17958, 17959, 17960, 17961, 17962, 17963, 17964, 17965, 171314,172359,172363,172375,172379,172383,172398];
                         } elseif ($item['transportType'] == 'cod' && $item['zipCode'] == '13180' && $item['provinceId'] == '4') {
                             //cod-ปทุมธานี
-                            $productIdSize = [17966, 171315, 17967, 17968, 17969, 17970, 17971, 17972, 17973];
+                            $productIdSize = [17966, 17967, 17968, 17969, 17970, 17971, 17972, 17973, 171315,172360,172364,172376,172380,172384,172399];
                         } elseif ($item['transportType'] == 'cod' && $item['zipCode'] == '13180' && $item['provinceId'] == '5') {
                             //cod-อยุธยา
-                            $productIdSize = [17974, 171316, 17975, 17976, 17977, 17978, 17979, 17980, 17981];
+                            $productIdSize = [17974, 17975, 17976, 17977, 17978, 17979, 17980, 17981, 171316,172361,172365,172377,172381,172385,172400];
                         } elseif ($item['transportType'] == 'normal' && (intval($provinceId[0] . $provinceId[1]) >= 10 && intval($provinceId[0] . $provinceId[1]) < 14)) {
                             //normal bkk
-                            $productIdSize = [17945, 171313, 17946, 17947, 17948, 17949, 17950, 17951, 17952];
+                            $productIdSize = [17945, 17946, 17947, 17948, 17949, 17950, 17951, 17952,171313,172358,172362,172374,172378,172382,172397];
                         } elseif ($item['transportType'] == 'normal' && intval($provinceId[0] . $provinceId[1]) > 14) {
                             //normal non-bkk
-                            $productIdSize = [17958, 171314, 17959, 17960, 17961, 17962, 17963, 17964, 17965];
+                            $productIdSize = [17958, 17959, 17960, 17961, 17962, 17963, 17964, 17965, 171314,172359,172363,172375,172379,172383,172398];
                         } elseif ($item['transportType'] == 'cod' && (intval($provinceId[0] . $provinceId[1]) >= 10 && intval($provinceId[0] . $provinceId[1]) < 14)) {
                             //cod bkk
-                            $productIdSize = [17966, 171315, 17967, 17968, 17969, 17970, 17971, 17972, 17973];
+                            $productIdSize = [17966, 17967, 17968, 17969, 17970, 17971, 17972, 17973, 171315,172360,172364,172376,172380,172384,172399];
                         } else {
                             //cod non-bkk
-                            $productIdSize = [17974, 171316, 17975, 17976, 17977, 17978, 17979, 17980, 17981];
+                            $productIdSize = [17974, 17975, 17976, 17977, 17978, 17979, 17980, 17981, 171316,172361,172365,172377,172381,172385,172400];
                         }
 
                         $lowerParcelSize = strtolower($item['size']);
